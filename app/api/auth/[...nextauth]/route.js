@@ -2,8 +2,8 @@ import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 
 const ALLOWED_EMAILS = [
-  'tu-email@gmail.com',        // ← reemplaza con tu email
-  'email-pareja@gmail.com'     // ← reemplaza con el email de tu pareja
+  'christian.winckler@gmail.com',        // ← reemplaza con tu email
+  'ja.valenzuelas99@gmail.com'     // ← reemplaza con el email de tu pareja
 ]
 
 export const authOptions = {
