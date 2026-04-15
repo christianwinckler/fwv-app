@@ -33,6 +33,7 @@ let totalFilasGastos=0;
 let dashMes=3,dashAnio=2026,pptoPanelMes=3,pptoPanelAnio=2026;
 let rangoDesde={mes:3,anio:2026},rangoHasta={mes:3,anio:2026};
 let listaOpen=false,alcancePendiente=null;
+let gastoActual=null,modoEdicion=false,gastoEditandoRowIndex=null;
 
 function fmt(n){return '$'+Math.round(Math.abs(n)).toLocaleString('es-CL');}
 function getStatus(p){return p>=100?'over':p>=80?'warning':'ok';}
@@ -180,7 +181,12 @@ function switchScreen(screen){
   window.scrollTo(0,0);
 }
 
-function abrirNuevoGasto(){document.getElementById('ov-nuevo').classList.add('open');}
+function abrirNuevoGasto(){
+  modoEdicion=false;gastoEditandoRowIndex=null;
+  document.querySelector('#ov-nuevo .sheet-title').textContent='Nuevo gasto';
+  document.getElementById('btn-guardar').textContent='Guardar gasto';
+  document.getElementById('ov-nuevo').classList.add('open');
+}
 
 // ── DASHBOARD ───────────────────────────────────────────
 function renderDashboard(){
@@ -279,6 +285,7 @@ function renderDetalle(){
 }
 function abrirGasto(id){
   const g=getTodosRango().find(x=>x.id===id);if(!g)return;
+  gastoActual=g;
   document.getElementById('g-desc').textContent=g.desc;
   document.getElementById('g-monto').textContent=(g.ie==='E'?'- ':'+ ')+fmt(g.monto);
   document.getElementById('ov-gasto').classList.add('open');
@@ -300,6 +307,45 @@ document.getElementById('picker-apply').addEventListener('click',()=>{
 });
 document.getElementById('ov-gasto').addEventListener('click',e=>{if(e.target===document.getElementById('ov-gasto'))cerrar('ov-gasto');});
 document.getElementById('ov-picker').addEventListener('click',e=>{if(e.target===document.getElementById('ov-picker'))cerrar('ov-picker');});
+document.querySelector('.btn-eliminar').addEventListener('click',async()=>{
+  cerrar('ov-gasto');
+  if(!confirm('¿Eliminar este gasto? Esta acción no se puede deshacer.'))return;
+  mostrarLoading('Eliminando...');
+  try{
+    const res=await fetch('/api/gastos',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({rowIndex:gastoActual.rowIndex})});
+    if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Error '+res.status);}
+    mostrarToast('Gasto eliminado \u2713');
+    await cargarDatos();
+    renderDetalle();
+  }catch(e){
+    ocultarLoading();
+    mostrarToast('Error al eliminar: '+e.message);
+  }
+});
+document.querySelector('.btn-editar').addEventListener('click',()=>{
+  cerrar('ov-gasto');
+  modoEdicion=true;
+  gastoEditandoRowIndex=gastoActual.rowIndex;
+  document.querySelector('#ov-nuevo .sheet-title').textContent='Editar gasto';
+  document.getElementById('btn-guardar').textContent='Guardar cambios';
+  document.getElementById('f-fecha').value=gastoActual.fecha;
+  document.getElementById('f-subcat').value=gastoActual.sub;
+  const subcatInfo=subcats.find(s=>s.sub===gastoActual.sub);
+  const cat=subcatInfo?.cat||gastoActual.cat||'';
+  const ie=subcatInfo?.ie||gastoActual.ie||'E';
+  document.getElementById('f-cat-nombre').textContent=cat;
+  const ieb=document.getElementById('f-ie-badge');
+  ieb.textContent=ie==='E'?'Egreso':'Ingreso';
+  ieb.className='ie-badge ie-'+ie;
+  document.getElementById('f-cat-badge').style.display='block';
+  document.querySelectorAll('.banco-btn').forEach(b=>{b.classList.toggle('active',b.dataset.banco===gastoActual.banco);});
+  document.getElementById('f-desc').value=gastoActual.desc||'';
+  document.getElementById('f-monto').value=gastoActual.monto||'';
+  const devToggleEl=document.getElementById('dev-toggle');
+  devToggleEl.classList.toggle('active',gastoActual.dev===true);
+  document.getElementById('dev-hint').textContent=gastoActual.dev?'marcado como X':'marcar con X';
+  document.getElementById('ov-nuevo').classList.add('open');
+});
 
 // ── PRESUPUESTO ─────────────────────────────────────────
 function renderPresupuesto(){
@@ -356,13 +402,38 @@ function actualizarPpto(sub,val,inputEl){
   document.getElementById('alcance-mes-label').textContent=`${meses[pptoPanelMes]} ${pptoPanelAnio}`;
   document.getElementById('ov-alcance').classList.add('open');
 }
-function aplicarAlcance(soloMes){
+async function aplicarAlcance(soloMes){
   if(!alcancePendiente)return;
   const{sub,nuevoMonto}=alcancePendiente;
   if(!pptoData[sub])pptoData[sub]={monto:0,fijo:false};
   pptoData[sub].monto=nuevoMonto;
-  mostrarToast(soloMes?`Actualizado solo para ${meses[pptoPanelMes]} ${pptoPanelAnio}`:'Presupuesto base actualizado');
-  cerrar('ov-alcance');alcancePendiente=null;renderPresupuesto();
+  const cat=pptoSubcats.find(s=>s.sub===sub)?.cat||sub;
+  mostrarLoading('Guardando presupuesto...');
+  try{
+    if(soloMes){
+      const periodo=String(pptoPanelMes+1).padStart(2,'0')+'-'+pptoPanelAnio;
+      const idx=presupuestoAllRows.findIndex(r=>r[0]===periodo&&r[1]===sub);
+      if(idx>=0){presupuestoAllRows[idx]=[periodo,sub,cat,nuevoMonto];}
+      else{presupuestoAllRows.push([periodo,sub,cat,nuevoMonto]);}
+    }else{
+      for(let m=pptoPanelMes;m<=11;m++){
+        const periodo=String(m+1).padStart(2,'0')+'-'+pptoPanelAnio;
+        const idx=presupuestoAllRows.findIndex(r=>r[0]===periodo&&r[1]===sub);
+        if(idx>=0){presupuestoAllRows[idx]=[periodo,sub,cat,nuevoMonto];}
+        else{presupuestoAllRows.push([periodo,sub,cat,nuevoMonto]);}
+      }
+    }
+    const res=await fetch('/api/presupuesto',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rows:presupuestoAllRows})});
+    if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Error '+res.status);}
+    mostrarToast(soloMes?`Actualizado para ${meses[pptoPanelMes]} ${pptoPanelAnio}`:`Actualizado hasta dic ${pptoPanelAnio}`);
+  }catch(e){
+    mostrarToast('Error al guardar: '+e.message);
+  }finally{
+    ocultarLoading();
+  }
+  cerrar('ov-alcance');alcancePendiente=null;
+  buildPptoForMonth(pptoPanelMes,pptoPanelAnio);
+  renderPresupuesto();
 }
 document.getElementById('alcance-solo-mes').addEventListener('click',()=>aplicarAlcance(true));
 document.getElementById('alcance-todos').addEventListener('click',()=>aplicarAlcance(false));
@@ -443,7 +514,14 @@ document.addEventListener('click',e=>{if(!e.target.closest('.subcat-wrap')&&!e.t
 document.querySelectorAll('.banco-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.banco-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');});});
 const devToggle=document.getElementById('dev-toggle');
 devToggle.addEventListener('click',()=>{devToggle.classList.toggle('active');document.getElementById('dev-hint').textContent=devToggle.classList.contains('active')?'marcado como X':'marcar con X';});
-document.getElementById('ov-nuevo').addEventListener('click',e=>{if(e.target===document.getElementById('ov-nuevo'))cerrar('ov-nuevo');});
+document.getElementById('ov-nuevo').addEventListener('click',e=>{
+  if(e.target===document.getElementById('ov-nuevo')){
+    cerrar('ov-nuevo');
+    modoEdicion=false;gastoEditandoRowIndex=null;
+    document.querySelector('#ov-nuevo .sheet-title').textContent='Nuevo gasto';
+    document.getElementById('btn-guardar').textContent='Guardar gasto';
+  }
+});
 document.getElementById('btn-guardar').addEventListener('click',async()=>{
   const fecha=document.getElementById('f-fecha').value;
   const sub=document.getElementById('f-subcat').value.trim();
@@ -458,17 +536,25 @@ document.getElementById('btn-guardar').addEventListener('click',async()=>{
   try{
     const devStr=esDev?'X':'';
     const dateSerial=Math.round(new Date(fecha).getTime()/86400000)+25569;
-    const N=totalFilasGastos+2;
+    const N=modoEdicion?gastoEditandoRowIndex:totalFilasGastos+2;
     const fB=`=IF(A${N}<>"";(CONCATENATE(IF(MONTH(A${N})<10;CONCATENATE("0";MONTH(A${N}));MONTH(A${N}));"-";YEAR(A${N})));if(A${N}="";"";\"Fecha no válida\"))`;
     const fD=`=IFERROR(VLOOKUP(C${N};'Par\u00e1metros'!A:B;2;FALSE);"")`;
     const fE=`=IF(G${N}<>"X";IFERROR(VLOOKUP(C${N};'Par\u00e1metros'!A:C;3;FALSE);"");IF(IFERROR(VLOOKUP(C${N};'Par\u00e1metros'!A:C;3;FALSE);"")="E";"I";"E"))`;
     const fJ=`=IF(I${N}<>"";IF(E${N}="I";IF(I${N}>0;I${N};I${N}*-1);IF(E${N}="E";IF(I${N}<0;I${N};I${N}*-1)));0)`;
     const fK=`=SUMIFs(Presupuesto!D:D;Presupuesto!A:A;B${N};Presupuesto!B:B;C${N})`;
     const row=[dateSerial,fB,sub,fD,fE,banco,devStr,desc,monto,fJ,fK];
-    const res=await fetch('/api/gastos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row})});
-    if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Error '+res.status);}
+    if(modoEdicion){
+      const res=await fetch('/api/gastos',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({rowIndex:gastoEditandoRowIndex,row})});
+      if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Error '+res.status);}
+      modoEdicion=false;gastoEditandoRowIndex=null;
+      document.querySelector('#ov-nuevo .sheet-title').textContent='Nuevo gasto';
+      mostrarToast('Gasto actualizado \u2713');
+    }else{
+      const res=await fetch('/api/gastos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row})});
+      if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Error '+res.status);}
+      mostrarToast('Gasto guardado \u2713');
+    }
     cerrar('ov-nuevo');
-    mostrarToast('Gasto guardado \u2713');
     document.getElementById('f-fecha').valueAsDate=new Date();
     document.getElementById('f-subcat').value='';
     document.getElementById('f-desc').value='';
@@ -478,10 +564,12 @@ document.getElementById('btn-guardar').addEventListener('click',async()=>{
     document.getElementById('dev-hint').textContent='marcar con X';
     document.getElementById('f-cat-badge').style.display='none';
     await cargarDatos();
+    renderDetalle();
   }catch(e){
     mostrarToast('Error al guardar: '+e.message);
   }finally{
-    btn.disabled=false;btn.textContent='Guardar gasto';
+    btn.disabled=false;
+    btn.textContent=modoEdicion?'Guardar cambios':'Guardar gasto';
   }
 });
 document.getElementById('ov-ajustes').addEventListener('click',e=>{if(e.target===document.getElementById('ov-ajustes'))cerrar('ov-ajustes');});
