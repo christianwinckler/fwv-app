@@ -464,8 +464,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       </button>
       <span class="navbar-brand">Gastos <span>FWV</span></span>
     </div>
-    <button id="btn-add-nav" onclick="abrirNuevoGasto()" style="width:32px;height:32px;background:#111;color:#fff;border:none;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;font-family:inherit;">+</button>
-
   </nav>
 
   <!-- DRAWER (mobile) -->

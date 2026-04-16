@@ -174,12 +174,10 @@ function computarDashData(){
 document.getElementById('btn-hamburger').addEventListener('click',()=>{
   document.getElementById('drawer').classList.add('open');
   document.getElementById('drawer-overlay').classList.add('open');
-  document.getElementById('btn-add-nav').style.display='none';
 });
 function cerrarDrawer(){
   document.getElementById('drawer').classList.remove('open');
   document.getElementById('drawer-overlay').classList.remove('open');
-  document.getElementById('btn-add-nav').style.display='flex';
 }
 
 // ── NAVEGACIÓN ──────────────────────────────────────────
@@ -248,9 +246,7 @@ function renderDashboard(){
     const rawPct=c.ppto>0?Math.round((c.monto/c.ppto)*100):0;
     const status=c.ppto>0?getStatus(rawPct):'ok';
     const catSafe=c.nombre.replace(/'/g,"\\'");
-    const accion=c.ppto===0&&c.monto>0
-      ?`<button onclick="abrirModalPpto('${catSafe}')" style="font-size:11px;color:#1a73e8;background:none;border:none;cursor:pointer;padding:0;font-family:inherit;font-weight:500;">+ Agregar presupuesto</button>`
-      :(rawPct>=100?'⚠ sobre presupuesto':rawPct>=80?'⚡ cerca del límite':'');
+    const accion=rawPct>=100?'✓ presupuesto cumplido':rawPct>=80?'⚡ cerca del límite':'';
     return `<div class="cat-card" onclick="abrirCat(${origIdx},'${key}')">
       <div class="cat-card-row">
         <div class="cat-icon" style="background:${catBgs[c.nombre]||'#f5f5f5'};color:${catColores[c.nombre]||'#666'}">${c.nombre.charAt(0)}</div>
@@ -277,6 +273,8 @@ function abrirCat(i,key){
   const status=ppto>0?getStatus(rawPct):'ok';
   const multiples=subcatsCat.length>1;
   const catSafe=c.nombre.replace(/'/g,"\\'");
+  const realPorSub={};
+  c.gastos.forEach(g=>{realPorSub[g.sub]=(realPorSub[g.sub]||0)+g.monto;});
   const headerLabel=ppto>0
     ?`<span style="font-weight:500;font-size:13px;">Presupuesto</span><span class="ppto-pct ${status}" style="margin-left:8px;">${rawPct}% usado</span>`
     :`<span style="font-weight:500;font-size:13px;">Presupuesto</span><span style="margin-left:8px;font-size:12px;color:#999;">Sin presupuesto</span><span style="margin-left:6px;font-size:12px;color:#1a73e8;font-weight:500;cursor:pointer;" onclick="event.stopPropagation();document.getElementById('cat-ppto-detalle').style.display='block';document.getElementById('cat-ppto-detalle').previousElementSibling.querySelector('.cat-ppto-chevron').textContent='▲';">+ Agregar</span>`;
@@ -302,18 +300,27 @@ function abrirCat(i,key){
           ${subcatsCat.map(sc=>{
             const label=sc.sub.includes(' - ')?sc.sub.split(' - ').slice(1).join(' - '):sc.sub;
             const val=pptoData[sc.sub]?.monto||0;
+            const real=realPorSub[sc.sub]||0;
+            const scPct=val>0?Math.round((real/val)*100):0;
+            const scStatus=val>0?getStatus(scPct):'ok';
             return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
               <span style="font-size:12px;color:#666;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${label}</span>
-              <div class="ppto-monto-wrap" style="flex-shrink:0;"><span class="ppto-monto-prefix">$</span>
-                <input class="ppto-monto-input" type="number" value="${val}" min="0" data-sub="${sc.sub}" style="width:90px;" />
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;">
+                <div class="ppto-monto-wrap"><span class="ppto-monto-prefix">$</span>
+                  <input class="ppto-monto-input" type="number" value="${val}" min="0" data-sub="${sc.sub}" style="width:90px;" />
+                </div>
+                <span style="font-size:10px;color:${{ok:'#1a73e8',warning:'#e65100',over:'#b71c1c'}[scStatus]||'#888'};">Real: ${fmt(real)}${val>0?' ('+scPct+'%)':''}</span>
               </div>
             </div>`;
           }).join('')}
         </div>`:
         `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;">
           <span style="font-size:12px;color:#666;">${subcatsCat[0]?.sub.includes(' - ')?subcatsCat[0].sub.split(' - ').slice(1).join(' - '):subcatsCat[0]?.sub||''}</span>
-          <div class="ppto-monto-wrap" style="flex-shrink:0;"><span class="ppto-monto-prefix">$</span>
-            <input class="ppto-monto-input" type="number" value="${ppto}" min="0" data-sub="${subcatsCat[0]?.sub||''}" style="width:90px;" />
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;">
+            <div class="ppto-monto-wrap"><span class="ppto-monto-prefix">$</span>
+              <input class="ppto-monto-input" type="number" value="${ppto}" min="0" data-sub="${subcatsCat[0]?.sub||''}" style="width:90px;" />
+            </div>
+            ${(()=>{const real=realPorSub[subcatsCat[0]?.sub]||0;const scPct=ppto>0?Math.round((real/ppto)*100):0;const scStatus=ppto>0?getStatus(scPct):'ok';return `<span style="font-size:10px;color:${{ok:'#1a73e8',warning:'#e65100',over:'#b71c1c'}[scStatus]||'#888'};">Real: ${fmt(real)}${ppto>0?' ('+scPct+'%)':''}</span>`;})()}
           </div>
         </div>`}
         ${subcatsCat.length?`<button onclick="guardarPptoDesdeCat('${catSafe}',${i},'${key}')" style="width:100%;padding:10px;background:#111;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;">Guardar cambios</button>`:''}
