@@ -11,6 +11,7 @@ window.actualizarPpto=actualizarPpto;
 window.abrirCat=abrirCat;
 window.guardarPptoDesdeCat=guardarPptoDesdeCat;
 window.abrirGasto=abrirGasto;
+window.abrirGastoById=abrirGastoById;
 window.toggleAdminCat=toggleAdminCat;
 window.eliminarSubcat=eliminarSubcat;
 window.agregarSubcat=agregarSubcat;
@@ -21,6 +22,14 @@ window.setDetFiltro=setDetFiltro;
 window.toggleDetCat=toggleDetCat;
 window.aplicarDetFiltros=aplicarDetFiltros;
 window.limpiarDetFiltros=limpiarDetFiltros;
+window.renderHome=renderHome;
+window.toggleHomeFiltro=toggleHomeFiltro;
+window.cerrarHomeFiltro=cerrarHomeFiltro;
+window.toggleHomeCat=toggleHomeCat;
+window.limpiarHomeFiltros=limpiarHomeFiltros;
+window.showHomeTip=showHomeTip;
+window.hideHomeTip=hideHomeTip;
+window.abrirDrawer=abrirDrawer;
 
 const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const mesesC=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -47,6 +56,10 @@ let pptoSortAsc=false;
 let catPptoPendiente=null;
 let catAlcancePendiente=null;
 const EXCLUDED_CATS=['Ahorro en Cuenta Vista','Pago Tarjeta Crédito Limited Visa'];
+
+let homeFiltroAbierto=false;
+let homeCatActiva='todos';
+let homeSubcatActiva=null;
 
 function fmt(n){return '$'+Math.round(Math.abs(n)).toLocaleString('es-CL');}
 function getStatus(p){return p>=100?'over':p>=80?'warning':'ok';}
@@ -142,6 +155,7 @@ async function cargarDatos(){
     dashData=computarDashData();
     ocultarLoading();
     renderDashboard();
+    if(document.getElementById('screen-home')?.classList.contains('active')) renderHome();
   }catch(e){
     mostrarError('No se pudo conectar con Google Sheets.\n'+e.message);
   }
@@ -156,7 +170,7 @@ function computarDashData(){
       if(!catMap[g.cat])catMap[g.cat]={nombre:g.cat,monto:0,ppto:0,gastos:[]};
       catMap[g.cat].monto+=g.monto;
       const fd=g.fecha.length>=10?g.fecha.slice(8,10)+'/'+g.fecha.slice(5,7):g.fecha;
-      catMap[g.cat].gastos.push({desc:g.desc,sub:g.sub,fecha:fd,monto:g.monto});
+      catMap[g.cat].gastos.push({id:g.id,desc:g.desc,sub:g.sub,fecha:fd,monto:g.monto});
     });
     Object.values(catMap).forEach(c=>{
       c.ppto=subcats.filter(s=>s.cat===c.nombre&&s.ie==='E')
@@ -171,11 +185,11 @@ function computarDashData(){
 
 
 // ── DRAWER ──────────────────────────────────────────────
-document.getElementById('btn-hamburger').addEventListener('click',()=>{
+function abrirDrawer(){
   document.getElementById('drawer').classList.add('open');
   document.getElementById('drawer-overlay').classList.add('open');
   document.getElementById('btn-add-nav').style.display='none';
-});
+}
 function cerrarDrawer(){
   document.getElementById('drawer').classList.remove('open');
   document.getElementById('drawer-overlay').classList.remove('open');
@@ -183,15 +197,20 @@ function cerrarDrawer(){
 }
 
 // ── NAVEGACIÓN ──────────────────────────────────────────
+const screenTitles={home:'Home',dashboard:'Resumen',detalle:'Detalle',presupuesto:'Presupuestos',admin:'Categorías'};
 function switchScreen(screen){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+screen).classList.add('active');
   document.querySelectorAll('.nav-link,.drawer-link').forEach(l=>{
     l.classList.toggle('active',l.dataset.screen===screen);
   });
+  const titleEl=document.getElementById('navbar-title');
+  if(titleEl) titleEl.innerHTML=`<span class="brand-prefix">Gastos FWV</span> - ${screenTitles[screen]||screen}`;
+  if(screen==='dashboard') renderDashboard();
   if(screen==='presupuesto') renderPresupuesto();
   if(screen==='admin') renderAdmin();
   if(screen==='detalle') renderDetalle();
+  if(screen==='home') renderHome();
   window.scrollTo(0,0);
 }
 
@@ -330,7 +349,7 @@ function abrirCat(i,key){
     </div>`;
 
   document.getElementById('cat-sheet-items').innerHTML=[...c.gastos].sort((a,b)=>b.monto-a.monto).map(g=>`
-    <div class="gasto-item" style="cursor:default;">
+    <div class="gasto-item" onclick="abrirGastoById(${g.id})">
       <div class="gasto-cat-dot" style="background:${catColores[c.nombre]||'#999'};"></div>
       <div class="gasto-info"><div class="gasto-desc">${g.desc}</div><div class="gasto-meta">${g.sub?g.sub.includes(' - ')?g.sub.split(' - ').slice(1).join(' - '):g.sub:''}${g.sub&&g.fecha?' · ':''}${g.fecha}</div></div>
       <div class="gasto-monto e">- ${fmt(g.monto)}</div>
@@ -459,6 +478,15 @@ function aplicarDetFiltros(){document.getElementById('det-filter-panel').style.d
 function limpiarDetFiltros(){detFiltros={tipo:'todos',cats:[],banco:'todos',orden:detFiltros.orden};renderDetFilterPanel(getTodosRango());}
 function abrirGasto(id){
   const g=getTodosRango().find(x=>x.id===id);if(!g)return;
+  gastoActual=g;
+  document.getElementById('g-desc').textContent=g.desc;
+  document.getElementById('g-monto').textContent=(g.ie==='E'?'- ':'+ ')+fmt(g.monto);
+  document.getElementById('ov-gasto').classList.add('open');
+}
+function abrirGastoById(id){
+  let g=null;
+  for(const gastos of Object.values(detalleData)){g=gastos.find(x=>x.id===id);if(g)break;}
+  if(!g)return;
   gastoActual=g;
   document.getElementById('g-desc').textContent=g.desc;
   document.getElementById('g-monto').textContent=(g.ie==='E'?'- ':'+ ')+fmt(g.monto);
@@ -873,6 +901,292 @@ document.getElementById('add-ppto-guardar').addEventListener('click',async()=>{
     ocultarLoading();
   }
 });
+
+// ── HOME ─────────────────────────────────────────────────
+function prevMesAnio(mes,anio,n){
+  let m=mes,a=anio;
+  for(let i=0;i<n;i++){m--;if(m<0){m=11;a--;}}
+  return {mes:m,anio:a};
+}
+function keyMesAnio(mes,anio){return String(mes+1).padStart(2,'0')+'-'+anio;}
+
+function renderHome(){
+  // ── KPI CUENTAS ──────────────────────────────────
+  function netoByBanco(banco){
+    let total=0;
+    for(const gastos of Object.values(detalleData)){
+      gastos.forEach(g=>{
+        if(g.banco===banco){
+          total+=(g.ie==='I'?g.monto:-g.monto);
+        }
+      });
+    }
+    return total;
+  }
+  const sant=netoByBanco('Santander');
+  const santEl=document.getElementById('kpi-sant');
+  if(santEl){
+    santEl.querySelector('.kpi-valor').textContent=fmt(sant);
+  }
+  const fala=netoByBanco('Falabella');
+  const falaEl=document.getElementById('kpi-fala');
+  if(falaEl){
+    falaEl.querySelector('.kpi-valor').textContent=fmt(fala);
+  }
+
+  // ── KPI ÚLTIMO MES ACTIVO FALABELLA ──────────────
+  const sortedKeys=Object.keys(detalleData).sort((a,b)=>{
+    const[ma,ya]=a.split('-').map(Number);
+    const[mb,yb]=b.split('-').map(Number);
+    return ya!==yb?ya-yb:ma-mb;
+  });
+  let ultimoMesFala='—',numComprasFala=0;
+  for(let i=sortedKeys.length-1;i>=0;i--){
+    const gastosFala=detalleData[sortedKeys[i]].filter(g=>g.banco==='Falabella');
+    if(gastosFala.length>0){
+      const[m,y]=sortedKeys[i].split('-').map(Number);
+      ultimoMesFala=meses[m-1]+' '+y;
+      numComprasFala=gastosFala.length;
+      break;
+    }
+  }
+  const falaMesEl=document.getElementById('kpi-fala-mes');
+  const falaCompEl=document.getElementById('kpi-fala-compras');
+  if(falaMesEl) falaMesEl.textContent=ultimoMesFala;
+  if(falaCompEl) falaCompEl.textContent=numComprasFala;
+
+  // ── KPI TARJETA DE CRÉDITO ───────────────────────
+  const tc=netoByBanco('Tarjeta Crédito');
+  const tcEl=document.getElementById('kpi-tc');
+  if(tcEl){
+    tcEl.textContent=(tc>=0?'':'-')+fmt(tc);
+    tcEl.style.color=tc>=0?'#2e7d32':'#c62828';
+  }
+
+  // ── CATEGORÍAS CLAVE ─────────────────────────────
+  const catKey=[
+    {id:'cat-kpi-cuentas',cat:'Cuentas'},
+    {id:'cat-kpi-super',cat:'Supermercado'},
+    {id:'cat-kpi-mall',cat:'Mall'},
+    {id:'cat-kpi-comer',cat:'Salidas a Comer'}
+  ];
+  const mesActualKey=keyMesAnio(dashMes,dashAnio);
+  const prev1=prevMesAnio(dashMes,dashAnio,1);
+  const prev2=prevMesAnio(dashMes,dashAnio,2);
+  const prev3=prevMesAnio(dashMes,dashAnio,3);
+  const prevKeys=[keyMesAnio(prev3.mes,prev3.anio),keyMesAnio(prev2.mes,prev2.anio),keyMesAnio(prev1.mes,prev1.anio)];
+
+  const periodoEl=document.getElementById('home-cat-periodo');
+  if(periodoEl){
+    const mActual=mesesC[dashMes]+' '+dashAnio;
+    const m1=mesesC[prev3.mes];
+    const m3=mesesC[prev1.mes];
+    periodoEl.textContent=mActual+' vs prom. '+m1+'–'+m3;
+  }
+
+  function sumaEgresosCat(key,cat){
+    return (detalleData[key]||[]).filter(g=>g.ie==='E'&&g.cat===cat).reduce((s,g)=>s+g.monto,0);
+  }
+
+  catKey.forEach(({id,cat})=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const actual=sumaEgresosCat(mesActualKey,cat);
+    const prom=(sumaEgresosCat(prevKeys[0],cat)+sumaEgresosCat(prevKeys[1],cat)+sumaEgresosCat(prevKeys[2],cat))/3;
+    const diff=prom>0?Math.round((actual-prom)/prom*100):0;
+    const diffOk=diff<=0;
+    const barPct=prom>0?Math.min((actual/prom)*100,100):0;
+    const barColor=diffOk?'#2e7d32':'#e53935';
+    el.querySelector('.cat-kpi-monto').textContent=fmt(actual);
+    el.querySelector('.cat-kpi-comparacion').innerHTML=
+      `<span class="cat-kpi-prom">prom ${fmt(prom)}</span>`+
+      (prom>0?`<span class="cat-kpi-diff ${diffOk?'diff-ok':'diff-over'}">${diff>0?'+':''}${diff}%</span>`:'');
+    el.querySelector('.cat-kpi-fill').style.width=barPct+'%';
+    el.querySelector('.cat-kpi-fill').style.background=barColor;
+  });
+
+  // ── INICIALIZAR CHIPS DE CATEGORÍA ───────────────
+  const chipsCat=document.getElementById('home-chips-cat');
+  if(chipsCat&&chipsCat.children.length<=1){
+    const cats=[...new Set(subcats.filter(s=>s.ie==='E').map(s=>s.cat))].sort();
+    cats.forEach(cat=>{
+      const btn=document.createElement('button');
+      btn.className='home-chip';
+      btn.textContent=cat;
+      btn.onclick=()=>toggleHomeCat(btn,cat);
+      chipsCat.appendChild(btn);
+    });
+  }
+
+  renderHomeGrafico();
+}
+
+function renderHomeGrafico(){
+  const svg=document.getElementById('home-line-chart');
+  const mesesEl=document.getElementById('home-chart-meses');
+  if(!svg) return;
+
+  // Calcular 12 meses hacia atrás
+  const puntos=[];
+  for(let i=11;i>=0;i--){
+    const{mes,anio}=prevMesAnio(dashMes,dashAnio,i);
+    const key=keyMesAnio(mes,anio);
+    const gastos=detalleData[key]||[];
+    let gasto=0;
+    gastos.forEach(g=>{
+      if(g.ie!=='E') return;
+      if(EXCLUDED_CATS.includes(g.cat)) return;
+      if(homeCatActiva!=='todos'&&g.cat!==homeCatActiva) return;
+      if(homeSubcatActiva&&g.sub!==homeSubcatActiva) return;
+      gasto+=g.monto;
+    });
+    let ppto=0;
+    if(homeCatActiva==='todos'&&!homeSubcatActiva){
+      const rows=presupuestoAllRows.filter(r=>r&&r[0]===key);
+      rows.forEach(r=>{
+        const sub=(r[1]||'').trim();
+        const sc=subcats.find(s=>s.sub===sub);
+        if(sc&&!EXCLUDED_CATS.includes(sc.cat)) ppto+=parseMonto(r[3])||0;
+      });
+    } else if(homeSubcatActiva){
+      const rows=presupuestoAllRows.filter(r=>r&&r[0]===key&&(r[1]||'').trim()===homeSubcatActiva);
+      rows.forEach(r=>{ ppto+=parseMonto(r[3])||0; });
+    } else {
+      const rows=presupuestoAllRows.filter(r=>r&&r[0]===key);
+      rows.forEach(r=>{
+        const sub=(r[1]||'').trim();
+        const sc=subcats.find(s=>s.sub===sub);
+        if(sc&&sc.cat===homeCatActiva) ppto+=parseMonto(r[3])||0;
+      });
+    }
+    puntos.push({mes,anio,key,gasto,ppto,label:mesesC[mes]});
+  }
+
+  const W=360,H=160,padL=10,padR=10,padT=14,padB=8;
+  const maxVal=Math.max(...puntos.map(p=>Math.max(p.gasto,p.ppto)),1);
+  const xOf=i=>padL+(i/(puntos.length-1))*(W-padL-padR);
+  const yOf=v=>padT+(1-v/maxVal)*(H-padT-padB);
+
+  // Grid lines
+  let svgStr='';
+  const gridSteps=4;
+  for(let i=0;i<=gridSteps;i++){
+    const y=padT+(i/gridSteps)*(H-padT-padB);
+    svgStr+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#f0f0f0" stroke-width="0.5"/>`;
+  }
+
+  // Área sombreada bajo gasto real
+  const areaPoints=puntos.map((p,i)=>`${xOf(i)},${yOf(p.gasto)}`).join(' ');
+  const areaPath=`M${xOf(0)},${yOf(puntos[0].gasto)} `+
+    puntos.slice(1).map((p,i)=>`L${xOf(i+1)},${yOf(p.gasto)}`).join(' ')+
+    ` L${xOf(puntos.length-1)},${yOf(0)} L${xOf(0)},${yOf(0)} Z`;
+  svgStr+=`<path d="${areaPath}" fill="#e53935" fill-opacity="0.08"/>`;
+
+  // Línea presupuesto (azul punteado)
+  const pptoPath=puntos.map((p,i)=>`${i===0?'M':'L'}${xOf(i)},${yOf(p.ppto)}`).join(' ');
+  svgStr+=`<path d="${pptoPath}" fill="none" stroke="#1a73e8" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.7"/>`;
+
+  // Línea gasto real (rojo)
+  const gastoPath=puntos.map((p,i)=>`${i===0?'M':'L'}${xOf(i)},${yOf(p.gasto)}`).join(' ');
+  svgStr+=`<path d="${gastoPath}" fill="none" stroke="#e53935" stroke-width="2"/>`;
+
+  // Puntos interactivos
+  puntos.forEach((p,i)=>{
+    const over=p.gasto>p.ppto&&p.ppto>0;
+    const color=over?'#e53935':'#2e7d32';
+    const cx=xOf(i),cy=yOf(p.gasto);
+    svgStr+=`<circle cx="${cx}" cy="${cy}" r="4" fill="${color}" stroke="#fff" stroke-width="1.5"
+      onmouseenter="showHomeTip(event,${i})" onmouseleave="hideHomeTip()"
+      ontouchstart="showHomeTip(event,${i})" ontouchend="hideHomeTip()"/>`;
+  });
+
+  svg.innerHTML=svgStr;
+  svg.setAttribute('data-puntos',JSON.stringify(puntos));
+
+  if(mesesEl){
+    mesesEl.innerHTML=puntos.map(p=>`<span>${p.label}</span>`).join('');
+  }
+}
+
+function showHomeTip(e,i){
+  const svg=document.getElementById('home-line-chart');
+  const tip=document.getElementById('home-tooltip');
+  if(!svg||!tip) return;
+  const puntos=JSON.parse(svg.getAttribute('data-puntos')||'[]');
+  const p=puntos[i];
+  if(!p) return;
+  tip.innerHTML=`<b>${mesesC[p.mes]} ${p.anio}</b><br>Gasto: ${fmt(p.gasto)}<br>Ppto: ${fmt(p.ppto)}`;
+  tip.style.display='block';
+  const rect=svg.closest('.home-chart-container').getBoundingClientRect();
+  const ex=e.touches?e.touches[0].clientX:e.clientX;
+  const ey=e.touches?e.touches[0].clientY:e.clientY;
+  let left=ex-rect.left+8;
+  let top=ey-rect.top-48;
+  if(left+120>rect.width) left=ex-rect.left-128;
+  if(top<0) top=ey-rect.top+12;
+  tip.style.left=left+'px';
+  tip.style.top=top+'px';
+}
+function hideHomeTip(){
+  const tip=document.getElementById('home-tooltip');
+  if(tip) tip.style.display='none';
+}
+
+function toggleHomeFiltro(){
+  homeFiltroAbierto=!homeFiltroAbierto;
+  const panel=document.getElementById('home-filtro-panel');
+  const btn=document.getElementById('home-filtro-btn-open');
+  if(panel) panel.classList.toggle('open',homeFiltroAbierto);
+  if(btn) btn.style.background=homeFiltroAbierto?'#1a73e8':'#e8f0fe',btn.style.color=homeFiltroAbierto?'#fff':'#1a73e8';
+}
+function cerrarHomeFiltro(){
+  homeFiltroAbierto=false;
+  const panel=document.getElementById('home-filtro-panel');
+  const btn=document.getElementById('home-filtro-btn-open');
+  if(panel) panel.classList.remove('open');
+  if(btn){btn.style.background='#e8f0fe';btn.style.color='#1a73e8';}
+}
+function toggleHomeCat(btn,cat){
+  homeCatActiva=cat;
+  homeSubcatActiva=null;
+  document.querySelectorAll('#home-chips-cat .home-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const subWrap=document.getElementById('home-chips-subcat-wrap');
+  const subContainer=document.getElementById('home-chips-subcat');
+  if(cat==='todos'){
+    if(subWrap) subWrap.style.display='none';
+  } else {
+    const catSubs=subcats.filter(s=>s.cat===cat&&s.ie==='E');
+    if(catSubs.length>0&&subContainer&&subWrap){
+      subContainer.innerHTML=catSubs.map(s=>{
+        const label=s.sub.includes(' - ')?s.sub.split(' - ').slice(1).join(' - '):s.sub;
+        return `<button class="home-chip subcat" onclick="toggleHomeSubcat(this,'${s.sub.replace(/'/g,"\\'")}')">${label}</button>`;
+      }).join('');
+      subWrap.style.display='block';
+    }
+  }
+  renderHomeGrafico();
+}
+function toggleHomeSubcat(btn,sub){
+  if(homeSubcatActiva===sub){
+    homeSubcatActiva=null;
+    btn.classList.remove('active');
+  } else {
+    homeSubcatActiva=sub;
+    document.querySelectorAll('#home-chips-subcat .home-chip').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  renderHomeGrafico();
+}
+window.toggleHomeSubcat=toggleHomeSubcat;
+function limpiarHomeFiltros(){
+  homeCatActiva='todos';
+  homeSubcatActiva=null;
+  document.querySelectorAll('#home-chips-cat .home-chip').forEach((b,i)=>b.classList.toggle('active',i===0));
+  const subWrap=document.getElementById('home-chips-subcat-wrap');
+  if(subWrap) subWrap.style.display='none';
+  renderHomeGrafico();
+}
 
 // ── INIT ─────────────────────────────────────────────────
 cargarDatos();

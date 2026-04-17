@@ -18,8 +18,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   display: flex; align-items: center; justify-content: space-between;
   position: sticky; top: 0; z-index: 100;
 }
-.navbar-brand { font-size: 16px; font-weight: 600; color: #111; }
-.navbar-brand span { color: #1a73e8; }
+.navbar-brand {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font-size: 16px; font-weight: 600; color: #111;
+  white-space: nowrap; pointer-events: none;
+}
+.navbar-brand .brand-prefix { color: #1a73e8; }
 
 .navbar-right { display: flex; align-items: center; gap: 8px; }
 
@@ -454,6 +458,55 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.section-label { padding:16px 16px 8px; font-size:11px; font-weight:500; color:#888; letter-spacing:0.06em; }
+.kpi-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:0 12px; }
+.kpi-card { background:#fff; border-radius:12px; padding:14px 12px; border:0.5px solid #e8e8e8; display:flex; flex-direction:column; gap:4px; }
+.kpi-label { font-size:10px; color:#888; font-weight:500; letter-spacing:0.04em; }
+.kpi-valor { font-size:17px; font-weight:600; color:#111; margin-top:2px; }
+.kpi-sub { font-size:11px; color:#999; margin-top:2px; }
+.kpi-badge { display:inline-block; padding:2px 7px; border-radius:10px; font-size:10px; font-weight:600; margin-top:4px; width:fit-content; }
+.badge-s { background:#fce4ec; color:#c62828; }
+.badge-f { background:#e8f5e9; color:#2e7d32; }
+.badge-tc { background:#fff8e1; color:#f57f17; }
+.kpi-card-full { background:#fff; border-radius:12px; padding:14px 12px; border:0.5px solid #e8e8e8; margin:0 12px; display:flex; align-items:center; gap:14px; }
+.kpi-card-falabella { background:#fff; border-radius:12px; padding:14px 12px; border:0.5px solid #e8e8e8; margin:0 12px; }
+.falabella-row { display:flex; align-items:center; gap:14px; }
+.falabella-compras { background:#e8f5e9; border-radius:10px; padding:8px 14px; text-align:center; flex-shrink:0; }
+.falabella-compras-num { font-size:22px; font-weight:700; color:#2e7d32; }
+.falabella-compras-label { font-size:10px; color:#2e7d32; font-weight:500; }
+.section-label-row { display:flex; align-items:baseline; justify-content:space-between; padding:16px 16px 8px; }
+.section-label-main { font-size:11px; font-weight:500; color:#888; letter-spacing:0.06em; }
+.section-label-sub { font-size:10px; color:#bbb; font-weight:400; }
+.cat-kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:0 12px; }
+.cat-kpi-card { background:#fff; border-radius:12px; padding:12px; border:0.5px solid #e8e8e8; }
+.cat-kpi-nombre { font-size:11px; font-weight:500; color:#888; letter-spacing:0.03em; margin-bottom:6px; }
+.cat-kpi-monto { font-size:16px; font-weight:600; color:#111; }
+.cat-kpi-comparacion { display:flex; align-items:center; gap:4px; margin-top:5px; flex-wrap:wrap; }
+.cat-kpi-prom { font-size:11px; color:#999; }
+.cat-kpi-diff { font-size:11px; font-weight:600; padding:1px 5px; border-radius:6px; }
+.diff-ok { background:#e8f5e9; color:#2e7d32; }
+.diff-over { background:#fce4ec; color:#c62828; }
+.cat-kpi-barra { margin-top:7px; height:4px; background:#eee; border-radius:2px; overflow:hidden; }
+.cat-kpi-fill { height:100%; border-radius:2px; }
+.home-chart-container { background:#fff; border-radius:12px; margin:0 12px; border:0.5px solid #e8e8e8; padding:14px 12px 10px; overflow:hidden; position:relative; }
+.home-chart-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.home-chart-titulo { font-size:13px; font-weight:500; color:#111; }
+.home-filtro-btn { display:flex; align-items:center; gap:5px; font-size:11px; color:#1a73e8; background:#e8f0fe; border:none; border-radius:6px; padding:5px 10px; cursor:pointer; font-family:inherit; font-weight:500; transition:all 0.15s; }
+.home-filtro-panel { background:#f9f9f9; border-radius:12px; margin:0 12px 8px; border:0.5px solid #e0e0e0; overflow:hidden; max-height:0; transition:max-height 0.3s ease; }
+.home-filtro-panel.open { max-height:500px; }
+.home-filtro-inner { padding:14px 12px 12px; }
+.home-filtro-panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.home-filtro-panel-titulo { font-size:13px; font-weight:500; color:#111; }
+.home-filtro-close { width:26px; height:26px; border-radius:50%; background:#ebebeb; border:none; cursor:pointer; font-size:13px; color:#666; display:flex; align-items:center; justify-content:center; }
+.home-chip { padding:5px 11px; border-radius:14px; font-size:12px; border:0.5px solid #e0e0e0; background:#fff; color:#555; cursor:pointer; font-family:inherit; transition:all 0.15s; }
+.home-chip.active { border-color:#1a73e8; background:#e8f0fe; color:#1a73e8; font-weight:500; }
+.home-chip.subcat { font-size:11px; padding:4px 9px; border-radius:10px; }
+.home-chip.subcat.active { border-color:#00695c; background:#e0f7fa; color:#00695c; }
+.home-chart-legend { display:flex; gap:14px; margin-top:8px; flex-wrap:wrap; }
+.home-legend-item { display:flex; align-items:center; gap:5px; font-size:10px; color:#888; }
+.home-legend-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.home-tooltip { position:absolute; background:#111; color:#fff; font-size:11px; padding:6px 10px; border-radius:8px; pointer-events:none; white-space:nowrap; z-index:200; display:none; line-height:1.6; }
+
   `
 
   const htmlContent = `
@@ -462,12 +515,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <!-- NAVBAR -->
   <nav class="navbar">
     <div style="display:flex;align-items:center;gap:12px;">
-      <button class="btn-hamburger" id="btn-hamburger">
+      <button class="btn-hamburger" id="btn-hamburger" onclick="abrirDrawer()">
         <div class="ham-line"></div>
         <div class="ham-line"></div>
         <div class="ham-line"></div>
       </button>
-      <span class="navbar-brand">Gastos <span>FWV</span></span>
+      <span class="navbar-brand" id="navbar-title"><span class="brand-prefix">Gastos FWV</span> - Resumen</span>
     </div>
     <button id="btn-add-nav" onclick="abrirNuevoGasto()" style="width:32px;height:32px;background:#111;color:#fff;border:none;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;font-family:inherit;">+</button>
   </nav>
@@ -481,6 +534,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="drawer-links">
       <div class="drawer-section-label">GASTOS</div>
+      <button class="drawer-link drawer-item-indent" data-screen="home" onclick="switchScreen('home');cerrarDrawer()">
+        <span class="drawer-link-icon">🏠</span> Home
+      </button>
       <button class="drawer-link drawer-item-indent active" data-screen="dashboard" onclick="switchScreen('dashboard');cerrarDrawer()">
         <span class="drawer-link-icon">📊</span> Resumen
       </button>
@@ -617,6 +673,119 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           <button class="admin-add-btn" id="btn-add-cat">+ Agregar</button>
         </div>
       </div>
+    </div>
+
+    <!-- HOME -->
+    <div class="screen" id="screen-home">
+      <div class="section-label">CUENTAS CORRIENTES</div>
+      <div class="kpi-grid-2" style="padding-bottom:0;">
+        <div class="kpi-card" id="kpi-sant">
+          <div class="kpi-label">SANTANDER</div>
+          <div class="kpi-valor">—</div>
+          <div class="kpi-badge badge-s">Cuenta corriente</div>
+        </div>
+        <div class="kpi-card" id="kpi-fala">
+          <div class="kpi-label">FALABELLA</div>
+          <div class="kpi-valor">—</div>
+          <div class="kpi-badge badge-f">Cuenta corriente</div>
+        </div>
+      </div>
+      <div style="height:8px;"></div>
+      <div class="kpi-card-falabella">
+        <div class="falabella-row">
+          <div class="falabella-compras">
+            <div class="falabella-compras-num" id="kpi-fala-compras">—</div>
+            <div class="falabella-compras-label">compras</div>
+          </div>
+          <div>
+            <div class="kpi-label">ÚLTIMO MES ACTIVO FALABELLA</div>
+            <div class="kpi-valor" id="kpi-fala-mes">—</div>
+          </div>
+        </div>
+      </div>
+      <div style="height:8px;"></div>
+      <div class="kpi-card-full">
+        <div style="flex:1;">
+          <div class="kpi-label">TARJETA DE CRÉDITO</div>
+          <div class="kpi-valor" id="kpi-tc">—</div>
+          <div class="kpi-sub">Saldo neto acumulado</div>
+        </div>
+        <div class="kpi-badge badge-tc">TC</div>
+      </div>
+
+      <div class="section-label-row" style="padding-top:20px;">
+        <span class="section-label-main">CATEGORÍAS CLAVE</span>
+        <span class="section-label-sub" id="home-cat-periodo">—</span>
+      </div>
+      <div class="cat-kpi-grid">
+        <div class="cat-kpi-card" id="cat-kpi-cuentas">
+          <div class="cat-kpi-nombre">CUENTAS</div>
+          <div class="cat-kpi-monto">—</div>
+          <div class="cat-kpi-comparacion"><span class="cat-kpi-prom">—</span></div>
+          <div class="cat-kpi-barra"><div class="cat-kpi-fill" style="width:0%;background:#1a73e8;"></div></div>
+        </div>
+        <div class="cat-kpi-card" id="cat-kpi-super">
+          <div class="cat-kpi-nombre">SUPERMERCADO</div>
+          <div class="cat-kpi-monto">—</div>
+          <div class="cat-kpi-comparacion"><span class="cat-kpi-prom">—</span></div>
+          <div class="cat-kpi-barra"><div class="cat-kpi-fill" style="width:0%;background:#1a73e8;"></div></div>
+        </div>
+        <div class="cat-kpi-card" id="cat-kpi-mall">
+          <div class="cat-kpi-nombre">MALL</div>
+          <div class="cat-kpi-monto">—</div>
+          <div class="cat-kpi-comparacion"><span class="cat-kpi-prom">—</span></div>
+          <div class="cat-kpi-barra"><div class="cat-kpi-fill" style="width:0%;background:#1a73e8;"></div></div>
+        </div>
+        <div class="cat-kpi-card" id="cat-kpi-comer">
+          <div class="cat-kpi-nombre">SALIDAS A COMER</div>
+          <div class="cat-kpi-monto">—</div>
+          <div class="cat-kpi-comparacion"><span class="cat-kpi-prom">—</span></div>
+          <div class="cat-kpi-barra"><div class="cat-kpi-fill" style="width:0%;background:#1a73e8;"></div></div>
+        </div>
+      </div>
+
+      <div class="section-label" style="padding-top:20px;">EVOLUCIÓN 12 MESES</div>
+      <div class="home-filtro-panel" id="home-filtro-panel">
+        <div class="home-filtro-inner">
+          <div class="home-filtro-panel-header">
+            <span class="home-filtro-panel-titulo">Filtrar gráfico</span>
+            <button class="home-filtro-close" onclick="cerrarHomeFiltro()">✕</button>
+          </div>
+          <div style="margin-bottom:10px;">
+            <div style="font-size:10px;color:#aaa;font-weight:500;letter-spacing:0.05em;margin-bottom:6px;">CATEGORÍA</div>
+            <div id="home-chips-cat" style="display:flex;flex-wrap:wrap;gap:6px;">
+              <button class="home-chip active" onclick="toggleHomeCat(this,'todos')">Todos</button>
+            </div>
+          </div>
+          <div id="home-chips-subcat-wrap" style="display:none;margin-bottom:10px;">
+            <div style="font-size:10px;color:#aaa;font-weight:500;letter-spacing:0.05em;margin-bottom:6px;">SUBCATEGORÍA</div>
+            <div id="home-chips-subcat" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+          </div>
+          <button class="home-chip" onclick="limpiarHomeFiltros()" style="margin-top:4px;">Limpiar filtros</button>
+        </div>
+      </div>
+      <div class="home-chart-container">
+        <div class="home-chart-header">
+          <span class="home-chart-titulo">Gasto vs presupuesto</span>
+          <button class="home-filtro-btn" id="home-filtro-btn-open" onclick="toggleHomeFiltro()">
+            <span>⚙</span> Filtrar
+          </button>
+        </div>
+        <div id="home-tooltip" class="home-tooltip"></div>
+        <svg id="home-line-chart" viewBox="0 0 360 160" style="width:100%;display:block;overflow:visible;"></svg>
+        <div class="home-chart-legend">
+          <div class="home-legend-item">
+            <div class="home-legend-dot" style="background:#e53935;"></div>
+            Gasto real
+          </div>
+          <div class="home-legend-item">
+            <div class="home-legend-dot" style="background:#1a73e8;border:1px dashed #1a73e8;"></div>
+            Presupuesto
+          </div>
+        </div>
+        <div id="home-chart-meses" style="display:flex;justify-content:space-between;padding:4px 2px 0;font-size:9px;color:#bbb;"></div>
+      </div>
+      <div style="height:16px;"></div>
     </div>
 
   </main>
@@ -916,12 +1085,14 @@ function cerrarDrawer(){
 }
 
 // ── NAVEGACIÓN ──────────────────────────────────────────
+const screenTitles={dashboard:'Resumen',detalle:'Detalle',presupuesto:'Presupuestos',admin:'Categorías'};
 function switchScreen(screen){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+screen).classList.add('active');
   document.querySelectorAll('.nav-link,.drawer-link').forEach(l=>{
     l.classList.toggle('active',l.dataset.screen===screen);
   });
+  document.getElementById('navbar-title').textContent=screenTitles[screen]||screen;
   if(screen==='presupuesto') renderPresupuesto();
   if(screen==='admin') renderAdmin();
   if(screen==='detalle') renderDetalle();
@@ -1239,7 +1410,7 @@ cargarDatos();
     if (document.getElementById('app-script')) return
     const script = document.createElement('script')
     script.id = 'app-script'
-    script.src = '/app-script.js?v=11'
+    script.src = '/app-script.js?v=16'
     document.body.appendChild(script)
   }, [])
 
