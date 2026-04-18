@@ -1262,6 +1262,13 @@ function getValMedioClass(modo){
 
 function clamp50k(n){return Math.floor(Math.max(0,n)/50000)*50000;}
 
+function calcAporteSaldo(s){
+  if(s.ppto<=0)return 0;
+  if(s.estado==='unpaid')return s.ppto;
+  if(s.estado==='paid'&&s.ppto>s.pagado)return s.ppto-s.pagado;
+  return 0;
+}
+
 function setValFiltroEstado(val){valFiltroEstado=val;renderValidacion();}
 function setValFiltroCategoria(val){valFiltroCategoria=val;renderValidacion();}
 
@@ -1334,6 +1341,14 @@ function renderValidacion(){
   const countPagados=subcatsConPpto.filter(s=>s.estado==='paid').length;
   const countTotal=subcatsConPpto.length;
 
+  const subcatsParaSaldo=valFiltroCategoria==='todos'
+    ?subcatsConPpto
+    :subcatsConPpto.filter(s=>s.cat===valFiltroCategoria);
+
+  const subcatsConSaldo=subcatsParaSaldo.filter(s=>calcAporteSaldo(s)>0);
+  const saldoDisponible=subcatsConSaldo.reduce((sum,s)=>sum+calcAporteSaldo(s),0);
+  const countPendientes=subcatsConSaldo.length;
+
   const cats=Object.keys(grupos).sort();
 
   let html='';
@@ -1364,7 +1379,7 @@ function renderValidacion(){
   }
   html+=`</div>`;
 
-  html+=`<div class="val-summary-grid">
+  html+=`<div class="val-summary-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
     <div class="val-s-card">
       <div class="val-s-label">TOTAL PAGADO</div>
       <div class="val-s-valor" style="color:#1a73e8;">${fmt(totalPagado)}</div>
@@ -1374,6 +1389,14 @@ function renderValidacion(){
       <div class="val-s-label">TOTAL PRESUPUESTADO</div>
       <div class="val-s-valor">${fmt(totalPpto)}</div>
       <div class="val-s-sub">${totalPpto>0?Math.round(totalPagado/totalPpto*100)+'% ejecutado':'—'}</div>
+    </div>
+    <div class="val-s-card">
+      <div class="val-s-label">SALDO DISPONIBLE${valFiltroCategoria!=='todos'?`<br><span style="color:#1a73e8;font-size:9px;font-weight:400;">${valFiltroCategoria}</span>`:''}</div>
+      <div style="display:flex;align-items:baseline;gap:6px;">
+        <div class="val-s-valor" style="font-size:clamp(13px,2.5vw,16px);color:${saldoDisponible>0?'#2e7d32':'#999'};">${fmt(saldoDisponible)}</div>
+        ${saldoDisponible>0?`<button onclick="abrirSaldoDetalle()" style="font-size:10px;padding:2px 7px;border-radius:6px;border:0.5px solid #2e7d32;background:#e8f5e9;color:#2e7d32;cursor:pointer;font-family:inherit;white-space:nowrap;">ver</button>`:''}
+      </div>
+      <div class="val-s-sub">${countPendientes} ítem${countPendientes!==1?'s':''}</div>
     </div>
   </div>`;
 
@@ -1443,8 +1466,107 @@ function renderValidacion(){
   document.getElementById('val-content').innerHTML=html;
 }
 
+window.toggleSaldoGrupo=toggleSaldoGrupo;
+function toggleSaldoGrupo(id){
+  const el=document.getElementById(id);
+  const chev=document.getElementById(id+'-chev');
+  if(!el)return;
+  const isOpen=el.style.display!=='none';
+  el.style.display=isOpen?'none':'block';
+  if(chev)chev.style.transform=isOpen?'rotate(-90deg)':'rotate(0deg)';
+}
+
+window.abrirSaldoDetalle=abrirSaldoDetalle;
+
+function abrirSaldoDetalle(){
+  const key=`${String(valMes+1).padStart(2,'0')}-${valAnio}`;
+  const gastosMes=detalleData[key]||[];
+
+  const pptoMes=presupuestoAllRows.filter(r=>r&&(r[0]||'').trim()===key);
+  const pptoMesDedup=new Map();
+  pptoMes.forEach(r=>{
+    const sub=(r[1]||'').trim();
+    if(sub&&!pptoMesDedup.has(sub))pptoMesDedup.set(sub,r);
+  });
+
+  const subcatsConPptoLocal=Array.from(pptoMesDedup.values())
+    .filter(r=>{
+      const sub=(r[1]||'').trim();
+      const sc=subcats.find(s=>s.sub.trim()===sub);
+      return sc&&sc.ie==='E'&&!EXCLUDED_CATS.includes(sc.cat);
+    })
+    .map(r=>{
+      const sub=(r[1]||'').trim();
+      const sc=subcats.find(s=>s.sub.trim()===sub)||{};
+      const monto=parseMonto(r[3])||0;
+      const gastosSubcat=gastosMes.filter(g=>g.sub.trim()===sub&&g.ie==='E');
+      const pagado=gastosSubcat.reduce((s,g)=>s+g.monto,0);
+      const estado=gastosSubcat.length>0?'paid':'unpaid';
+      return{sub,cat:sc.cat||(r[2]||''),modo:sc.modo||'',ppto:monto,pagado,estado};
+    });
+
+  const filtradas=valFiltroCategoria==='todos'
+    ?subcatsConPptoLocal
+    :subcatsConPptoLocal.filter(s=>s.cat===valFiltroCategoria);
+
+  const conSaldo=filtradas
+    .map(s=>({...s,aporte:calcAporteSaldo(s)}))
+    .filter(s=>s.aporte>0)
+    .sort((a,b)=>b.aporte-a.aporte);
+
+  const total=conSaldo.reduce((sum,s)=>sum+s.aporte,0);
+
+  const grupos={};
+  conSaldo.forEach(s=>{
+    if(!grupos[s.cat])grupos[s.cat]=[];
+    grupos[s.cat].push(s);
+  });
+
+  let html='';
+  Object.entries(grupos).forEach(([cat,items],idx)=>{
+    const totalCat=items.reduce((sum,s)=>sum+s.aporte,0);
+    const groupId='saldo-grp-'+idx;
+    html+=`<div style="margin-bottom:6px;border:0.5px solid #e8e8e8;border-radius:10px;overflow:hidden;">
+    <div onclick="toggleSaldoGrupo('${groupId}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f9f9f9;cursor:pointer;user-select:none;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="${groupId}-chev" style="font-size:11px;color:#bbb;transition:transform 0.2s;display:inline-block;">▼</span>
+        <span style="font-size:11px;font-weight:500;color:#555;letter-spacing:0.05em;">${cat.toUpperCase()}</span>
+      </div>
+      <span style="font-size:13px;font-weight:500;color:#111;">${fmt(totalCat)}</span>
+    </div>
+    <div id="${groupId}" style="display:block;">`;
+    items.forEach(s=>{
+      const label=s.sub.includes(' - ')?s.sub.split(' - ').slice(1).join(' - '):s.sub;
+      const esNoPagado=s.estado==='unpaid';
+      const tagColor=esNoPagado?'#e8f0fe':'#e8f5e9';
+      const tagText=esNoPagado?'No pagado':'Saldo a favor';
+      const tagTextColor=esNoPagado?'#1a73e8':'#2e7d32';
+      html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:0.5px solid #f5f5f5;background:#fff;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</div>
+        <div style="font-size:11px;color:#999;margin-top:2px;display:flex;gap:6px;align-items:center;">
+          <span style="background:${tagColor};color:${tagTextColor};padding:1px 6px;border-radius:4px;font-size:10px;font-weight:500;">${tagText}</span>
+          ${!esNoPagado?`<span>Pagado: ${fmt(s.pagado)} de ${fmt(s.ppto)}</span>`:`<span>Ppto: ${fmt(s.ppto)}</span>`}
+        </div>
+      </div>
+      <div style="font-size:14px;font-weight:500;color:#111;flex-shrink:0;margin-left:12px;">${fmt(s.aporte)}</div>
+    </div>`;
+    });
+    html+=`</div></div>`;
+  });
+
+  html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 4px 4px;border-top:0.5px solid #e0e0e0;margin-top:6px;">
+    <span style="font-size:14px;font-weight:500;">Total disponible</span>
+    <span style="font-size:16px;font-weight:500;color:#2e7d32;">${fmt(total)}</span>
+  </div>`;
+
+  document.getElementById('saldo-detalle-content').innerHTML=html;
+  document.getElementById('ov-saldo-detalle').classList.add('open');
+}
+
 // ── INIT ─────────────────────────────────────────────────
 document.getElementById('val-prev').addEventListener('click',()=>{valMes--;if(valMes<0){valMes=11;valAnio--;}renderValidacion();});
 document.getElementById('val-next').addEventListener('click',()=>{valMes++;if(valMes>11){valMes=0;valAnio++;}renderValidacion();});
+document.getElementById('ov-saldo-detalle').addEventListener('click',e=>{if(e.target===document.getElementById('ov-saldo-detalle'))cerrar('ov-saldo-detalle');});
 cargarDatos();
   

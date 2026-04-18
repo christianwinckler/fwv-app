@@ -860,6 +860,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </div>
 
 <!-- OVERLAYS -->
+<div class="overlay" id="ov-saldo-detalle">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Saldo disponible</div>
+    <div id="saldo-detalle-content"></div>
+  </div>
+</div>
+
 <div class="overlay" id="ov-ajustes">
   <div class="sheet">
     <div class="sheet-handle"></div>
@@ -1476,7 +1484,7 @@ cargarDatos();
     if (document.getElementById('app-script')) return
     const script = document.createElement('script')
     script.id = 'app-script'
-    script.src = '/app-script.js?v=19'
+    script.src = '/app-script.js?v=21'
     document.body.appendChild(script)
   }, [])
 
