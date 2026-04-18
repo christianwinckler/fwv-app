@@ -30,6 +30,8 @@ window.limpiarHomeFiltros=limpiarHomeFiltros;
 window.showHomeTip=showHomeTip;
 window.hideHomeTip=hideHomeTip;
 window.abrirDrawer=abrirDrawer;
+window.setValFiltroEstado=setValFiltroEstado;
+window.setValFiltroCategoria=setValFiltroCategoria;
 
 const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const mesesC=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -60,6 +62,10 @@ const EXCLUDED_CATS=['Ahorro en Cuenta Vista','Pago Tarjeta Crédito Limited Vis
 let homeFiltroAbierto=false;
 let homeCatActiva='todos';
 let homeSubcatActiva=null;
+
+let valMes=3,valAnio=2026;
+let valFiltroEstado='todos';
+let valFiltroCategoria='todos';
 
 function fmt(n){return '$'+Math.round(Math.abs(n)).toLocaleString('es-CL');}
 function getStatus(p){return p>=100?'over':p>=80?'warning':'ok';}
@@ -145,7 +151,7 @@ async function cargarDatos(){
     const gastosRows=await gastosRes.json();
     const pptoRows=await pptoRes.json();
 
-    subcats=paramRows.slice(1).filter(r=>r&&r[0]).map(r=>({sub:r[0],cat:r[1]||'',ie:r[2]||'E'}));
+    subcats=paramRows.slice(1).filter(r=>r&&r[0]).map(r=>({sub:r[0],cat:r[1]||'',ie:r[2]||'E',modo:r[3]||''}));
     presupuestoAllRows=pptoRows.slice(1).filter(r=>r&&r[0]);
     buildPptoForMonth(pptoPanelMes,pptoPanelAnio);
 
@@ -211,7 +217,7 @@ function cerrarDrawer(){
 }
 
 // ── NAVEGACIÓN ──────────────────────────────────────────
-const screenTitles={home:'Home',dashboard:'Resumen',detalle:'Detalle',presupuesto:'Presupuestos',admin:'Categorías'};
+const screenTitles={home:'Home',dashboard:'Resumen',detalle:'Detalle',presupuesto:'Presupuestos',admin:'Categorías',validacion:'Validación Pagos'};
 function switchScreen(screen){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+screen).classList.add('active');
@@ -225,6 +231,7 @@ function switchScreen(screen){
   if(screen==='admin') renderAdmin();
   if(screen==='detalle') renderDetalle();
   if(screen==='home') renderHome();
+  if(screen==='validacion') renderValidacion();
   window.scrollTo(0,0);
 }
 
@@ -1242,6 +1249,202 @@ function limpiarHomeFiltros(){
   renderHomeGrafico();
 }
 
+// ── VALIDACIÓN PAGOS ─────────────────────────────────────
+
+function getValMedioClass(modo){
+  if(!modo) return 'val-medio-otro';
+  const m=modo.toLowerCase();
+  if(m.includes('transferencia')) return 'val-medio-transf';
+  if(m.includes('tarjeta c')||m.includes('tc')) return 'val-medio-tc';
+  if(m.includes('débito')||m.includes('debito')) return 'val-medio-debito';
+  return 'val-medio-otro';
+}
+
+function clamp50k(n){return Math.floor(Math.max(0,n)/50000)*50000;}
+
+function setValFiltroEstado(val){valFiltroEstado=val;renderValidacion();}
+function setValFiltroCategoria(val){valFiltroCategoria=val;renderValidacion();}
+
+function renderValidacion(){
+  document.getElementById('val-mes').textContent=`${meses[valMes]} ${valAnio}`;
+  const key=`${String(valMes+1).padStart(2,'0')}-${valAnio}`;
+  const gastosMes=detalleData[key]||[];
+
+  const allGastos=Object.values(detalleData).flat();
+  const santander=allGastos.filter(g=>g.banco==='Santander').reduce((s,g)=>s+g.montoValido,0);
+
+  const ahorroMes=gastosMes.filter(g=>g.cat==='Ahorro en Cuenta Vista').reduce((s,g)=>s+g.monto,0);
+
+  const pptoMes=presupuestoAllRows.filter(r=>r&&(r[0]||'').trim()===key);
+  const pptoMesDedup=new Map();
+  pptoMes.forEach(r=>{const sub=(r[1]||'').trim();if(sub&&!pptoMesDedup.has(sub))pptoMesDedup.set(sub,r);});
+  const subcatsConPpto=Array.from(pptoMesDedup.values())
+    .filter(r=>{
+      const sub=(r[1]||'').trim();
+      const sc=subcats.find(s=>s.sub.trim()===sub);
+      return sc&&sc.ie==='E'&&!EXCLUDED_CATS.includes(sc.cat);
+    })
+    .map(r=>{
+      const sub=(r[1]||'').trim();
+      const sc=subcats.find(s=>s.sub.trim()===sub)||{};
+      const monto=parseMonto(r[3])||0;
+      const gastosSubcat=gastosMes.filter(g=>g.sub.trim()===sub&&g.ie==='E');
+      const pagado=gastosSubcat.reduce((s,g)=>s+g.monto,0);
+      const estado=gastosSubcat.length>0?'paid':'unpaid';
+      return{sub,cat:sc.cat||(r[2]||''),modo:sc.modo||'',ppto:monto,pagado,estado};
+    });
+
+  const subsConPptoSet=new Set(subcatsConPpto.map(s=>s.sub.trim()));
+  const gastosExtra=gastosMes
+    .filter(g=>g.ie==='E'&&!EXCLUDED_CATS.includes(g.cat)&&!subsConPptoSet.has(g.sub.trim()))
+    .reduce((acc,g)=>{
+      const subKey=g.sub.trim();
+      if(!acc[subKey]){
+        const sc=subcats.find(s=>s.sub.trim()===subKey)||{};
+        acc[subKey]={sub:subKey,cat:g.cat,modo:sc.modo||'',ppto:0,pagado:0,estado:'paid'};
+      }
+      acc[subKey].pagado+=g.monto;
+      return acc;
+    },{});
+  const todasSubcats=[...subcatsConPpto,...Object.values(gastosExtra)];
+
+  const transferPendiente=subcatsConPpto
+    .filter(s=>(s.modo||'').toLowerCase().includes('transferencia')&&s.estado==='unpaid'&&s.ppto>0)
+    .reduce((sum,s)=>sum+s.ppto,0);
+
+  const ahorroSugerido=clamp50k(santander-transferPendiente);
+
+  const grupos={};
+  todasSubcats.forEach(s=>{
+    if(!grupos[s.cat]) grupos[s.cat]=[];
+    grupos[s.cat].push(s);
+  });
+
+  const gruposFiltrados=Object.entries(grupos).reduce((acc,[cat,items])=>{
+    let filtItems=items;
+    if(valFiltroEstado==='pagado') filtItems=items.filter(s=>s.estado==='paid');
+    else if(valFiltroEstado==='pendiente') filtItems=items.filter(s=>s.estado==='unpaid'&&s.ppto>0);
+    if(valFiltroCategoria!=='todos'&&cat!==valFiltroCategoria) return acc;
+    if(filtItems.length>0) acc[cat]=filtItems;
+    return acc;
+  },{});
+
+  const totalPagado=todasSubcats.reduce((s,i)=>s+i.pagado,0);
+  const totalPpto=subcatsConPpto.reduce((s,i)=>s+i.ppto,0);
+  const countPagados=subcatsConPpto.filter(s=>s.estado==='paid').length;
+  const countTotal=subcatsConPpto.length;
+
+  const cats=Object.keys(grupos).sort();
+
+  let html='';
+
+  const ahorroRealizado=ahorroMes>0;
+  html+=`<div class="val-ahorro-card ${ahorroRealizado?'realizado':''}">
+    <div class="val-ahorro-title">${ahorroRealizado?'AHORRO REALIZADO ESTE MES':'CÁLCULO AHORRO DISPONIBLE'}</div>`;
+  if(ahorroRealizado){
+    html+=`<div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div class="val-ahorro-total">${fmt(ahorroMes)}</div>
+        <div style="font-size:11px;color:#4caf50;margin-top:2px;">Cuenta Vista</div>
+      </div>
+      <span class="val-ahorro-badge badge-ahorrado">Ahorrado ✓</span>
+    </div>`;
+  }else{
+    html+=`<div class="val-ahorro-row"><span style="color:#555;">Cuenta Santander</span><span>${fmt(santander)}</span></div>
+    <div class="val-ahorro-row"><span style="color:#555;">— Transf. planificadas pendientes</span><span style="color:#c62828;">− ${fmt(transferPendiente)}</span></div>
+    <div class="val-ahorro-divider"></div>
+    <div class="val-ahorro-row" style="margin-bottom:4px;"><span style="color:#555;">Subtotal</span><span>${fmt(santander-transferPendiente)}</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div class="val-ahorro-total">${fmt(ahorroSugerido)}</div>
+        <div style="font-size:11px;color:#1a73e8;margin-top:2px;">Redondeado a bloques de $50.000</div>
+      </div>
+      <span class="val-ahorro-badge badge-pendiente">Pendiente</span>
+    </div>`;
+  }
+  html+=`</div>`;
+
+  html+=`<div class="val-summary-grid">
+    <div class="val-s-card">
+      <div class="val-s-label">TOTAL PAGADO</div>
+      <div class="val-s-valor" style="color:#1a73e8;">${fmt(totalPagado)}</div>
+      <div class="val-s-sub">${countPagados} de ${countTotal} ítems</div>
+    </div>
+    <div class="val-s-card">
+      <div class="val-s-label">TOTAL PRESUPUESTADO</div>
+      <div class="val-s-valor">${fmt(totalPpto)}</div>
+      <div class="val-s-sub">${totalPpto>0?Math.round(totalPagado/totalPpto*100)+'% ejecutado':'—'}</div>
+    </div>
+  </div>`;
+
+  html+=`<div class="val-legend">
+    <div class="val-legend-item"><div class="val-legend-dot" style="background:#e8f5e9;border:1.5px solid #a5d6a7;"></div>Pagado</div>
+    <div class="val-legend-item"><div class="val-legend-dot" style="background:#f5f5f5;border:1.5px solid #e0e0e0;"></div>Pendiente</div>
+  </div>`;
+
+  const estadoOptions=[{val:'todos',label:'Todos'},{val:'pagado',label:'Pagados'},{val:'pendiente',label:'Pendientes'}];
+  html+=`<div class="val-filter-row" style="padding-bottom:2px;">`;
+  estadoOptions.forEach(o=>{
+    html+=`<button class="val-chip ${valFiltroEstado===o.val?'active':''}" onclick="setValFiltroEstado('${o.val}')">${o.label}</button>`;
+  });
+  html+=`</div>`;
+  html+=`<div style="padding:2px 12px 8px;">
+    <div style="font-size:10px;color:#888;font-weight:500;letter-spacing:0.06em;margin-bottom:6px;">CATEGORÍA</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;">`;
+  html+=`<button class="val-chip ${valFiltroCategoria==='todos'?'active':''}" onclick="setValFiltroCategoria('todos')">Todas las cats.</button>`;
+  cats.forEach(c=>{
+    const cs=c.replace(/'/g,"\\'");
+    html+=`<button class="val-chip ${valFiltroCategoria===c?'active':''}" onclick="setValFiltroCategoria('${cs}')">${c}</button>`;
+  });
+  html+=`</div></div>`;
+
+  Object.entries(gruposFiltrados).forEach(([cat,items])=>{
+    const realGrupo=items.reduce((s,i)=>s+i.pagado,0);
+    const pptoGrupo=items.reduce((s,i)=>s+i.ppto,0);
+    const itemsHTML=items.map(item=>{
+      const diff=item.ppto>0?item.pagado-item.ppto:0;
+      const diffHTML=item.ppto>0
+        ?`<div class="${diff>0?'val-diff-over':'val-diff-ok'}">${diff>0?'+':''}${fmt(diff)}</div>`
+        :'';
+      const medioClass=getValMedioClass(item.modo);
+      return`<div class="val-item-row">
+        <div class="val-check"><div class="val-dot ${item.estado}">${item.estado==='paid'?'✓':''}</div></div>
+        <div class="val-info">
+          <div class="val-name">${item.sub.includes(' - ')?item.sub.split(' - ').slice(1).join(' - '):item.sub}</div>
+          <div class="val-meta">
+            ${item.modo?`<span class="val-medio ${medioClass}">${item.modo}</span>`:''}
+            ${item.ppto>0?`<span>Ppto: ${fmt(item.ppto)}</span>`:'<span>Sin presupuesto</span>'}
+          </div>
+        </div>
+        <div class="val-montos">
+          <div class="val-pagado" style="${item.pagado===0?'color:#999':''}">${item.pagado>0?fmt(item.pagado):'—'}</div>
+          ${diffHTML}
+        </div>
+      </div>`;
+    }).join('');
+
+    html+=`<div class="val-cat-block">
+      <div class="val-group-header">
+        <span>${cat.toUpperCase()}</span>
+        <span>${fmt(realGrupo)} / ${pptoGrupo>0?fmt(pptoGrupo):'—'}</span>
+      </div>
+      ${itemsHTML}
+      <div class="val-subtotal">
+        <span style="font-weight:500;color:#555;">Subtotal</span>
+        <span style="font-weight:500;">${fmt(realGrupo)}${pptoGrupo>0?` <span style="color:#999;font-weight:400;">de ${fmt(pptoGrupo)}</span>`:''}</span>
+      </div>
+    </div>`;
+  });
+
+  if(Object.keys(gruposFiltrados).length===0){
+    html+=`<div style="padding:40px 16px;text-align:center;font-size:13px;color:#999;">No hay ítems con este filtro</div>`;
+  }
+
+  document.getElementById('val-content').innerHTML=html;
+}
+
 // ── INIT ─────────────────────────────────────────────────
+document.getElementById('val-prev').addEventListener('click',()=>{valMes--;if(valMes<0){valMes=11;valAnio--;}renderValidacion();});
+document.getElementById('val-next').addEventListener('click',()=>{valMes++;if(valMes>11){valMes=0;valAnio++;}renderValidacion();});
 cargarDatos();
   

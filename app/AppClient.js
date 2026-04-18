@@ -507,6 +507,54 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .home-legend-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 .home-tooltip { position:absolute; background:#111; color:#fff; font-size:11px; padding:6px 10px; border-radius:8px; pointer-events:none; white-space:nowrap; z-index:200; display:none; line-height:1.6; }
 
+/* ── VALIDACIÓN ────────────────────────────────────────── */
+.val-ahorro-card { margin: 12px 12px 4px; border-radius: 10px; padding: 13px 14px; background: #e8f0fe; border: 0.5px solid #aac4f0; }
+.val-ahorro-card.realizado { background: #e8f5e9; border-color: #a5d6a7; }
+.val-ahorro-title { font-size: 10px; font-weight: 500; color: #1a73e8; letter-spacing: 0.06em; margin-bottom: 8px; }
+.val-ahorro-card.realizado .val-ahorro-title { color: #2e7d32; }
+.val-ahorro-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; font-size: 13px; }
+.val-ahorro-divider { height: 0.5px; background: #c5d4f7; margin: 6px 0; }
+.val-ahorro-card.realizado .val-ahorro-divider { background: #a5d6a7; }
+.val-ahorro-total { font-size: 16px; font-weight: 500; color: #1a73e8; }
+.val-ahorro-card.realizado .val-ahorro-total { color: #2e7d32; }
+.val-ahorro-badge { padding: 3px 10px; border-radius: 14px; font-size: 11px; font-weight: 500; }
+.badge-ahorrado { background: #c8e6c9; color: #1b5e20; }
+.badge-pendiente { background: #bbdefb; color: #0d47a1; }
+.val-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 12px 6px; }
+.val-s-card { background: #f5f5f5; border-radius: 10px; padding: 11px 12px; }
+.val-s-label { font-size: 10px; color: #888; font-weight: 500; letter-spacing: 0.04em; margin-bottom: 3px; }
+.val-s-valor { font-size: 16px; font-weight: 500; color: #111; }
+.val-s-sub { font-size: 11px; color: #999; margin-top: 2px; }
+.val-filter-row { padding: 6px 12px 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+.val-chip { padding: 5px 12px; border-radius: 14px; font-size: 12px; border: 0.5px solid #e0e0e0; background: #fff; color: #555; cursor: pointer; font-family: inherit; }
+.val-chip.active { border-color: #1a73e8; background: #e8f0fe; color: #1a73e8; font-weight: 500; }
+.val-cat-block { border: 0.5px solid #e8e8e8; border-radius: 10px; margin: 0 12px 6px; overflow: hidden; }
+.val-group-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f9f9f9; font-size: 11px; font-weight: 500; color: #888; border-bottom: 0.5px solid #f0f0f0; letter-spacing: 0.04em; }
+.val-item-row { display: flex; align-items: center; gap: 0; padding: 10px 12px; border-bottom: 0.5px solid #f5f5f5; background: #fff; }
+.val-item-row:last-of-type { border-bottom: none; }
+.val-check { width: 26px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.val-dot { width: 17px; height: 17px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; flex-shrink: 0; }
+.val-dot.paid { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+.val-dot.unpaid { background: #f5f5f5; border: 1.5px solid #e0e0e0; }
+.val-dot.partial { background: #fff8e1; color: #f57f17; border: 1px solid #ffe082; }
+.val-info { flex: 1; min-width: 0; }
+.val-name { font-size: 13px; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.val-meta { font-size: 11px; color: #999; margin-top: 2px; display: flex; gap: 5px; align-items: center; }
+.val-medio { padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+.val-medio-transf { background: #e8f0fe; color: #1a73e8; }
+.val-medio-tc { background: #fff8e1; color: #f57f17; }
+.val-medio-debito { background: #e0f7fa; color: #00695c; }
+.val-medio-otro { background: #f3e5f5; color: #7b1fa2; }
+.val-montos { text-align: right; flex-shrink: 0; min-width: 78px; }
+.val-pagado { font-size: 13px; font-weight: 500; }
+.val-ppto { font-size: 11px; color: #999; }
+.val-diff-over { font-size: 10px; color: #c62828; }
+.val-diff-ok { font-size: 10px; color: #2e7d32; }
+.val-subtotal { display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; background: #f5f5f5; font-size: 12px; border-top: 0.5px solid #eeeeee; }
+.val-legend { display: flex; gap: 12px; padding: 4px 14px 8px; flex-wrap: wrap; }
+.val-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #888; }
+.val-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
   `
 
   const htmlContent = `
@@ -546,6 +594,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       </button>
       <button class="drawer-link drawer-item-indent" data-screen="presupuesto" onclick="switchScreen('presupuesto');cerrarDrawer()">
         <span class="drawer-link-icon">💰</span> Presupuestos
+      </button>
+      <button class="drawer-link drawer-item-indent" data-screen="validacion" onclick="switchScreen('validacion');cerrarDrawer()">
+        <span class="drawer-link-icon">✅</span> Validación Pagos
       </button>
       <div class="drawer-divider"></div>
       <div class="drawer-section-label">ADMINISTRADOR</div>
@@ -674,6 +725,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           <button class="admin-add-btn" id="btn-add-cat">+ Agregar</button>
         </div>
       </div>
+    </div>
+
+    <!-- VALIDACIÓN -->
+    <div class="screen" id="screen-validacion">
+      <div class="mes-nav">
+        <button class="mes-arrow" id="val-prev">‹</button>
+        <span class="mes-label" id="val-mes">Abril 2026</span>
+        <button class="mes-arrow" id="val-next">›</button>
+      </div>
+      <div id="val-content"></div>
     </div>
 
     <!-- HOME -->
@@ -1415,7 +1476,7 @@ cargarDatos();
     if (document.getElementById('app-script')) return
     const script = document.createElement('script')
     script.id = 'app-script'
-    script.src = '/app-script.js?v=16'
+    script.src = '/app-script.js?v=19'
     document.body.appendChild(script)
   }, [])
 
