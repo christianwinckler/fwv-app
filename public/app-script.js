@@ -1525,9 +1525,22 @@ function renderHome(){
   if(santEl){
     santEl.querySelector('.kpi-valor').textContent=fmt(sant);
   }
-  const sumaA=allGastos.filter(g=>g.banco==='Falabella').reduce((s,g)=>s+g.montoValido,0);
-  const sumaB=allGastos.filter(g=>g.banco==='Santander'&&g.sub==='Ingreso a Falabella desde Cuenta Corriente').reduce((s,g)=>s+g.montoValido,0);
-  const fala=sumaA+sumaB;
+  // Parte 1: montoValido donde sub = "Banco - Ingreso a Falabella desde Ahorros"
+  const fala1 = allGastos
+    .filter(g => g.sub === 'Banco - Ingreso a Falabella desde Ahorros')
+    .reduce((s, g) => s + g.montoValido, 0);
+
+  // Parte 2: montoValido donde sub = "Banco - Ingreso a Falabella desde Cuenta Corriente", invertido
+  const fala2 = allGastos
+    .filter(g => g.sub === 'Banco - Ingreso a Falabella desde Cuenta Corriente')
+    .reduce((s, g) => s + g.montoValido, 0) * -1;
+
+  // Parte 3: montoValido donde ie = "E" y banco = "Falabella"
+  const fala3 = allGastos
+    .filter(g => g.ie === 'E' && g.banco === 'Falabella')
+    .reduce((s, g) => s + g.montoValido, 0);
+
+  const fala = fala1 + fala2 + fala3;
   const falaEl=document.getElementById('kpi-fala');
   if(falaEl){
     falaEl.querySelector('.kpi-valor').textContent=fmt(fala);

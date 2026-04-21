@@ -1770,10 +1770,11 @@ cargarDatos();
   `
 
   useEffect(() => {
-    if (document.getElementById('app-script')) return
+    const existing = document.getElementById('app-script')
+    if (existing) existing.remove()
     const script = document.createElement('script')
     script.id = 'app-script'
-    script.src = '/app-script.js?v=24'
+    script.src = '/app-script.js?v=' + Date.now()
     document.body.appendChild(script)
   }, [])
 
