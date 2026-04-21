@@ -1565,7 +1565,16 @@ function renderHome(){
   const falaMesEl=document.getElementById('kpi-fala-mes');
   const falaCompEl=document.getElementById('kpi-fala-compras');
   if(falaMesEl) falaMesEl.textContent=ultimoMesFala;
-  if(falaCompEl) falaCompEl.textContent=numComprasFala;
+  if(falaCompEl){
+    falaCompEl.textContent=numComprasFala;
+    const bgColor=numComprasFala>=8?'#e8f5e9':numComprasFala>=4?'#fff8e1':'#fce4ec';
+    const textColor=numComprasFala>=8?'#2e7d32':numComprasFala>=4?'#f57f17':'#c62828';
+    const falaBox=falaCompEl.closest('.falabella-compras');
+    falaBox.style.background=bgColor;
+    falaCompEl.style.color=textColor;
+    const falaLabel=falaBox.querySelector('.falabella-compras-label');
+    if(falaLabel) falaLabel.style.color=textColor;
+  }
 
   // ── KPI TARJETA DE CRÉDITO ───────────────────────
   const tc=allGastos.filter(g=>g.banco==='Tarjeta Crédito').reduce((s,g)=>s+g.montoValido,0);

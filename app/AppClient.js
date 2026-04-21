@@ -1770,8 +1770,7 @@ cargarDatos();
   `
 
   useEffect(() => {
-    const existing = document.getElementById('app-script')
-    if (existing) existing.remove()
+    if (document.getElementById('app-script')) return
     const script = document.createElement('script')
     script.id = 'app-script'
     script.src = '/app-script.js?v=' + Date.now()
