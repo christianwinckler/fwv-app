@@ -514,7 +514,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .diff-over { background:#fce4ec; color:#c62828; }
 .cat-kpi-barra { margin-top:7px; height:4px; background:#eee; border-radius:2px; overflow:hidden; }
 .cat-kpi-fill { height:100%; border-radius:2px; }
-.home-chart-container { background:#fff; border-radius:12px; margin:0 12px; border:0.5px solid #e8e8e8; padding:14px 12px 10px; overflow:hidden; position:relative; }
+.home-chart-container { background:#fff; border-radius:12px; margin:0 12px; border:0.5px solid #e8e8e8; padding:14px 12px 10px; position:relative; }
 .home-chart-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
 .home-chart-titulo { font-size:13px; font-weight:500; color:#111; }
 .home-filtro-btn { display:flex; align-items:center; gap:5px; font-size:11px; color:#1a73e8; background:#e8f0fe; border:none; border-radius:6px; padding:5px 10px; cursor:pointer; font-family:inherit; font-weight:500; transition:all 0.15s; }
@@ -662,6 +662,39 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .btn-dividir-guardar.habilitado { background: #111; color: #fff; }
 .btn-dividir-guardar.deshabilitado { background: #999; color: #fff; opacity: .4; cursor: default; }
 
+/* ── CUOTAS TC ─────────────────────────────────────────── */
+.cuotas-add-btn { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; padding:11px 16px; background:#e8f0fe; color:#1a73e8; border:0.5px solid #aac4f0; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; margin:14px 0 10px; }
+.cuotas-kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 12px 8px; }
+.cuotas-kpi-card { background:#fff; border-radius:12px; padding:13px 12px; border:0.5px solid #e8e8e8; }
+.cuotas-card { background:#fff; border-radius:14px; padding:14px 14px 10px; border:0.5px solid #e8e8e8; margin-bottom:8px; box-shadow:0 1px 4px rgba(0,0,0,0.04); }
+.cuotas-card-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:10px; }
+.cuotas-card-info { flex:1; min-width:0; }
+.cuotas-card-desc { font-size:14px; font-weight:600; color:#111; margin-bottom:3px; }
+.cuotas-card-tags { display:flex; gap:5px; align-items:center; flex-wrap:wrap; margin-top:2px; }
+.cuotas-tarjeta-gold { background:#fff8e1; color:#f57f17; padding:2px 7px; border-radius:5px; font-size:10px; font-weight:500; }
+.cuotas-tarjeta-visa { background:#e8f0fe; color:#1a73e8; padding:2px 7px; border-radius:5px; font-size:10px; font-weight:500; }
+.cuotas-card-monto { text-align:right; flex-shrink:0; margin-left:12px; }
+.cuotas-monto-cuota { font-size:18px; font-weight:700; }
+.cuotas-progress-label { display:flex; justify-content:space-between; margin-bottom:4px; font-size:11px; color:#888; }
+.cuotas-progress-bar { height:6px; background:#eee; border-radius:3px; overflow:hidden; margin-bottom:8px; }
+.cuotas-progress-fill { height:100%; border-radius:3px; transition:width 0.3s; }
+.cuotas-card-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; }
+.cuotas-badges { display:flex; gap:6px; flex-wrap:wrap; }
+.cuotas-badge-pagadas { background:#e8f0fe; border-radius:8px; padding:5px 10px; font-size:11px; color:#1a73e8; font-weight:500; }
+.cuotas-badge-restantes { background:#fce4ec; border-radius:8px; padding:5px 10px; font-size:11px; color:#c62828; font-weight:500; }
+.cuotas-badge-pendiente { background:#fff8e1; border-radius:8px; padding:5px 10px; font-size:11px; color:#f57f17; font-weight:500; }
+.cuotas-pagar-btn { padding:7px 14px; background:#111; color:#fff; border:none; border-radius:9px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:5px; }
+.cuotas-tabs { display:flex; gap:0; margin:0 12px 8px; background:#f0f0f0; border-radius:10px; padding:3px; }
+.cuotas-tab { flex:1; padding:7px 0; border:none; cursor:pointer; border-radius:8px; font-size:13px; background:transparent; color:#888; font-family:inherit; transition:all 0.15s; }
+.cuotas-tab.active { background:#fff; color:#111; font-weight:600; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+.cuotas-tarjeta-group { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.cuotas-tarjeta-btn { display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 6px; border:0.5px solid #ddd; border-radius:8px; background:#fff; cursor:pointer; font-family:inherit; transition:all 0.1s; }
+.cuotas-tarjeta-btn.active-gold { border:1.5px solid #f57f17; background:#fff8e1; }
+.cuotas-tarjeta-btn.active-visa { border:1.5px solid #1a73e8; background:#e8f0fe; }
+.cuotas-tarjeta-icon { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+.cuotas-tarjeta-icon.gold { background:#fff8e1; color:#f57f17; }
+.cuotas-tarjeta-icon.visa { background:#e8f0fe; color:#1a73e8; }
+
   `
 
   const htmlContent = `
@@ -670,7 +703,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <!-- NAVBAR -->
   <nav class="navbar">
     <div style="display:flex;align-items:center;gap:10px;">
-      <a href="/home" style="font-size:12px;color:#999;text-decoration:none;white-space:nowrap;padding:2px 4px;font-family:inherit;">← Apps</a>
       <button class="btn-hamburger" id="btn-hamburger" onclick="abrirDrawer()">
         <div class="ham-line"></div>
         <div class="ham-line"></div>
@@ -684,9 +716,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <!-- DRAWER (mobile) -->
   <div class="drawer-overlay" id="drawer-overlay" onclick="cerrarDrawer()"></div>
   <div class="drawer" id="drawer">
-    <div class="drawer-header">
-      <span class="drawer-brand">Gastos FWV</span>
-      <button class="drawer-close" onclick="cerrarDrawer()">✕</button>
+    <div class="drawer-header" style="flex-direction:column;align-items:stretch;gap:0;padding:0;">
+      <a href="/home" style="display:flex;align-items:center;gap:8px;padding:12px 20px 10px;font-size:13px;color:#1a73e8;text-decoration:none;font-family:inherit;font-weight:500;border-bottom:0.5px solid #f0f0f0;">
+        <span style="font-size:15px;line-height:1;">←</span> Volver a Apps
+      </a>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 12px;">
+        <span class="drawer-brand">Gastos FWV</span>
+        <button class="drawer-close" onclick="cerrarDrawer()">✕</button>
+      </div>
     </div>
     <div class="drawer-links">
       <button class="drawer-link drawer-item-indent active" data-screen="home" onclick="switchScreen('home');cerrarDrawer()">
@@ -706,14 +743,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <button class="drawer-link drawer-item-indent" data-screen="validacion" onclick="switchScreen('validacion');cerrarDrawer()">
         <span class="drawer-link-icon">✅</span> Validación Pagos
       </button>
+      <button class="drawer-link drawer-item-indent" data-screen="cuotas" onclick="switchScreen('cuotas');cerrarDrawer()">
+        <span class="drawer-link-icon">💳</span> Cuotas TC
+      </button>
       <div class="drawer-divider"></div>
       <div class="drawer-section-label">ADMINISTRADOR</div>
       <button class="drawer-link drawer-item-indent" data-screen="admin" onclick="switchScreen('admin');cerrarDrawer()">
         <span class="drawer-link-icon">🗂</span> Categorías
       </button>
-    </div>
-    <div style="padding:8px 16px 0;">
-      <a href="/home" style="display:block;text-align:center;font-size:13px;color:#999;text-decoration:none;padding:10px 0;">← Volver a Apps</a>
     </div>
     <div style="padding:8px 16px 16px;">
       <button style="width:100%;padding:13px;background:#111;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;" onclick="abrirNuevoGasto();cerrarDrawer()">+ Nuevo gasto</button>
@@ -848,6 +885,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div id="val-content"></div>
     </div>
 
+    <!-- CUOTAS TC -->
+    <div class="screen" id="screen-cuotas">
+      <div style="padding:0 12px;">
+        <button class="cuotas-add-btn" onclick="abrirNuevaCuota()">
+          <span style="font-size:18px;line-height:1;">+</span> Agregar gasto en cuotas
+        </button>
+      </div>
+      <div class="cuotas-kpi-grid" id="cuotas-kpi"></div>
+      <div class="cuotas-tabs">
+        <button class="cuotas-tab active" id="cuotas-tab-activas" onclick="setCuotasTab('activas')">Activas</button>
+        <button class="cuotas-tab" id="cuotas-tab-completadas" onclick="setCuotasTab('completadas')">Completadas</button>
+      </div>
+      <div style="padding:0 12px 80px;" id="cuotas-lista"></div>
+    </div>
+
     <!-- HOME -->
     <div class="screen active" id="screen-home">
       <div class="section-label">CUENTAS CORRIENTES</div>
@@ -915,6 +967,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           <div class="cat-kpi-comparacion"><span class="cat-kpi-prom">—</span></div>
           <div class="cat-kpi-barra"><div class="cat-kpi-fill" style="width:0%;background:#1a73e8;"></div></div>
         </div>
+      </div>
+
+      <!-- PROYECCIÓN CUOTAS TC -->
+      <div class="section-label" style="padding-top:20px;">PROYECCIÓN CUOTAS TC</div>
+      <div class="home-chart-container" style="padding:14px 0 10px;overflow:hidden;">
+        <div style="padding:0 12px 10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <span class="home-chart-titulo">Pagos futuros por tarjeta de crédito</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 12px 12px;" id="cuotas-home-kpis"></div>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 12px 4px;">
+          <div id="cuotas-home-chart-wrap" style="min-width:600px;position:relative;height:220px;">
+            <div id="cuotas-home-tooltip" style="position:absolute;background:#1a1a1a;color:#fff;padding:8px 11px;border-radius:8px;font-size:12px;pointer-events:none;display:none;line-height:1.7;white-space:nowrap;z-index:10;"></div>
+            <canvas id="cuotasHomeChart" role="img" aria-label="Gráfico de proyección mensual de pagos en cuotas de tarjeta de crédito" style="display:block;"></canvas>
+          </div>
+        </div>
+        <div id="cuotas-home-legend" style="display:flex;flex-wrap:wrap;gap:12px;padding:10px 12px 0;"></div>
       </div>
 
       <div class="section-label" style="padding-top:20px;">EVOLUCIÓN 12 MESES</div>
@@ -1292,6 +1360,67 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       </div>
     </div>
     <div id="div-subcat-options" style="max-height:260px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- CUOTAS: nueva compra -->
+<div class="overlay" id="ov-nueva-cuota">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 16px;">
+      <div class="sheet-title" style="margin-bottom:0;">Nueva compra en cuotas</div>
+      <button style="width:28px;height:28px;border-radius:50%;background:#f5f5f5;border:none;cursor:pointer;font-size:14px;color:#666;" onclick="cerrar('ov-nueva-cuota')">✕</button>
+    </div>
+    <div class="form-body">
+      <div class="field"><label>ÍTEM / DESCRIPCIÓN</label><input type="text" id="cuota-item" placeholder="Ej: Compra de Televisor" /></div>
+      <div class="field"><label>FECHA DE COMPRA</label><input type="date" id="cuota-fecha-compra" /></div>
+      <div class="field">
+        <label>TARJETA</label>
+        <div class="cuotas-tarjeta-group">
+          <button class="cuotas-tarjeta-btn active-gold" data-tarjeta="Gold" onclick="selCuotaTarjeta(this,'Gold')">
+            <div class="cuotas-tarjeta-icon gold">G</div>
+            <span style="font-size:12px;color:#f57f17;font-weight:500;">Gold</span>
+          </button>
+          <button class="cuotas-tarjeta-btn" data-tarjeta="Limited Visa" onclick="selCuotaTarjeta(this,'Limited Visa')">
+            <div class="cuotas-tarjeta-icon visa">LV</div>
+            <span style="font-size:12px;color:#666;">Limited Visa</span>
+          </button>
+        </div>
+      </div>
+      <div class="field"><label>MONTO TOTAL DE LA COMPRA</label><div class="monto-wrap"><span class="monto-prefix">$</span><input type="number" id="cuota-monto-total" placeholder="0" min="0" /></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="field"><label>N° DE CUOTAS</label><input type="number" id="cuota-num-cuotas" placeholder="12" min="1" oninput="actualizarPreviewCuota()" /></div>
+        <div class="field"><label>VALOR CUOTA</label><div class="monto-wrap"><span class="monto-prefix">$</span><input type="number" id="cuota-valor-cuota" placeholder="0" min="0" oninput="actualizarPreviewCuota()" /></div></div>
+      </div>
+      <div id="cuota-preview" style="display:none;background:#e8f0fe;border-radius:10px;padding:10px 14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:12px;color:#1a73e8;">Total en cuotas</span>
+          <span style="font-size:14px;font-weight:600;color:#1a73e8;" id="cuota-preview-total"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;color:#888;">Diferencia con precio contado</span>
+          <span style="font-size:12px;font-weight:500;" id="cuota-preview-diff"></span>
+        </div>
+      </div>
+      <button class="btn-guardar" id="btn-guardar-cuota" onclick="guardarNuevaCuota()">Registrar compra en cuotas</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUOTAS: confirmar pago -->
+<div class="alcance-overlay" id="ov-pagar-cuota">
+  <div class="alcance-card" style="max-width:360px;">
+    <div class="alcance-titulo">Confirmar pago de cuota</div>
+    <div style="background:#f5f5f5;border-radius:10px;padding:12px 14px;margin-bottom:16px;margin-top:6px;" id="pagar-cuota-detalle"></div>
+    <div class="field" style="margin-bottom:16px;">
+      <label>FECHA DEL PAGO</label>
+      <input type="date" id="pagar-cuota-fecha" />
+    </div>
+    <p style="font-size:13px;color:#888;line-height:1.5;margin-bottom:18px;">Se creará un registro en Detalle con subcategoría "TC - Pagos en Cuotas". El contador de cuotas se actualizará automáticamente.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button style="width:100%;padding:13px;background:#111;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="confirmarPagarCuota()">✓ Registrar pago</button>
+      <button style="width:100%;padding:13px;background:#f5f5f5;color:#555;border:none;border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit;" onclick="cerrar('ov-pagar-cuota')">Cancelar</button>
+    </div>
   </div>
 </div>
 

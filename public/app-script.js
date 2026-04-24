@@ -53,6 +53,13 @@ window.divUsarResto=divUsarResto;
 window.divRemovePart=divRemovePart;
 window.ejecutarDividir=ejecutarDividir;
 window.cargarDatosQuiet=cargarDatosQuiet;
+window.setCuotasTab=setCuotasTab;
+window.abrirNuevaCuota=abrirNuevaCuota;
+window.guardarNuevaCuota=guardarNuevaCuota;
+window.actualizarPreviewCuota=actualizarPreviewCuota;
+window.selCuotaTarjeta=selCuotaTarjeta;
+window.abrirPagarCuota=abrirPagarCuota;
+window.confirmarPagarCuota=confirmarPagarCuota;
 
 const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const mesesC=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -244,7 +251,7 @@ function cerrarDrawer(){
 }
 
 // ── NAVEGACIÓN ──────────────────────────────────────────
-const screenTitles={home:'Home',dashboard:'Resumen',detalle:'Detalle',presupuesto:'Presupuestos',admin:'Categorías',validacion:'Validación Pagos'};
+const screenTitles={home:'Home',dashboard:'Resumen',detalle:'Detalle',presupuesto:'Presupuestos',admin:'Categorías',validacion:'Validación Pagos',cuotas:'Cuotas TC'};
 function switchScreen(screen){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+screen).classList.add('active');
@@ -260,6 +267,7 @@ function switchScreen(screen){
   if(screen==='detalle') renderDetalle();
   if(screen==='home') renderHome();
   if(screen==='validacion') renderValidacion();
+  if(screen==='cuotas') { cargarCuotas().then(()=>renderCuotas()); }
   window.scrollTo(0,0);
 }
 
@@ -1641,6 +1649,15 @@ function renderHome(){
   }
 
   renderHomeGrafico();
+
+  // Gráfico proyección cuotas TC
+  if(cuotasData&&cuotasData.length>0){
+    renderCuotasHomeChart();
+  }else{
+    cargarCuotas().then(()=>{
+      if(cuotasData.length>0)renderCuotasHomeChart();
+    });
+  }
 }
 
 function renderHomeGrafico(){
@@ -2139,5 +2156,442 @@ function abrirSaldoDetalle(){
 document.getElementById('val-prev').addEventListener('click',()=>{valMes--;if(valMes<0){valMes=11;valAnio--;}renderValidacion();});
 document.getElementById('val-next').addEventListener('click',()=>{valMes++;if(valMes>11){valMes=0;valAnio++;}renderValidacion();});
 document.getElementById('ov-saldo-detalle').addEventListener('click',e=>{if(e.target===document.getElementById('ov-saldo-detalle'))cerrar('ov-saldo-detalle');});
+
+// ── CUOTAS TC ────────────────────────────────────────────
+let cuotasData=[];
+let cuotasTab='activas';
+let cuotaPendientePago=null;
+let cuotaTarjetaSeleccionada='Gold';
+
+function serialToDate(serial){
+  if(!serial&&serial!==0)return '';
+  const s=String(serial).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+  if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)){const[d,m,y]=s.split('/');return y+'-'+m.padStart(2,'0')+'-'+d.padStart(2,'0');}
+  const num=parseFloat(s);
+  if(!isNaN(num)&&num>1000){const d=new Date(Math.round((num-25569)*86400000));return d.toISOString().slice(0,10);}
+  return s;
+}
+
+function cuotaMesLabel(fechaISO,offsetMeses){
+  if(!fechaISO)return '—';
+  const fecha=isNaN(fechaISO)?fechaISO:serialToDate(fechaISO);
+  if(!fecha)return '—';
+  const d=new Date(fecha+'T00:00:00');
+  if(isNaN(d.getTime()))return '—';
+  d.setMonth(d.getMonth()+offsetMeses);
+  return mesesC[d.getMonth()]+' '+d.getFullYear();
+}
+function fmtMesDesdeSerial(val){
+  if(!val)return '—';
+  const iso=serialToDate(val);
+  if(!iso||iso.length<7)return '—';
+  const d=new Date(iso+'T00:00:00');
+  if(isNaN(d.getTime()))return '—';
+  return mesesC[d.getMonth()]+' '+d.getFullYear();
+}
+function fmtFechaCorta(fechaISO){
+  if(!fechaISO||fechaISO.length<10)return '—';
+  const[y,m,d]=fechaISO.split('-');
+  return d+'/'+m+'/'+y;
+}
+
+async function cargarCuotas(){
+  try{
+    const res=await fetch('/api/cuotas');
+    if(!res.ok)return;
+    const rows=await res.json();
+    cuotasData=rows
+      .filter(r=>r&&r[0])
+      .map((r,idx)=>{
+        console.log('[Cuotas] fila',idx,'| B:',r[0],'| C:',r[1],'| H:',r[6],'| J:',r[8],'| K:',r[9],'| L:',r[10]);
+        return {
+          rowOffset:       idx,
+          item:            (r[0]||'').trim(),
+          fechaCompra:     serialToDate(r[1]),
+          tarjeta:         (r[2]||'').trim(),
+          montoTotal:      parseMonto(r[3])||0,
+          numeroCuotas:    parseInt(r[4])||0,
+          cuotasPagadas:   parseInt(r[5])||0,
+          mesSiguiente:    serialToDate(r[6]),
+          mesSubsiguiente: serialToDate(r[7]),
+          valorCuota:      parseMonto(r[8])||0,
+          cuotasRestantes: parseInt(r[9])||0,
+          montoPendiente:  parseMonto(r[10])||0,
+          ultimaCuotaFecha:'',
+        };
+      });
+    cuotasData.forEach(c=>{
+      const pagos=Object.values(detalleData)
+        .flat()
+        .filter(g=>g.sub==='TC - Pagos en Cuotas'&&g.desc.startsWith(c.item))
+        .sort((a,b)=>b.fecha.localeCompare(a.fecha));
+      c.ultimaCuotaFecha=pagos.length>0?pagos[0].fecha:'';
+    });
+  }catch(e){console.error('Error cargando cuotas:',e);}
+}
+
+function setCuotasTab(tab){
+  cuotasTab=tab;
+  document.getElementById('cuotas-tab-activas').classList.toggle('active',tab==='activas');
+  document.getElementById('cuotas-tab-completadas').classList.toggle('active',tab==='completadas');
+  renderCuotas();
+}
+
+function renderCuotas(){
+  const activas=cuotasData.filter(c=>c.cuotasRestantes>0);
+  const completadas=cuotasData.filter(c=>c.cuotasRestantes<=0);
+  const lista=cuotasTab==='activas'?activas:completadas;
+  const totalMensual=activas.reduce((s,c)=>s+c.valorCuota,0);
+  const totalDeuda=activas.reduce((s,c)=>s+c.montoPendiente,0);
+  document.getElementById('cuotas-kpi').innerHTML=`
+    <div class="cuotas-kpi-card">
+      <div class="kpi-label">CUOTA MENSUAL TOTAL</div>
+      <div class="kpi-valor" style="color:#c62828;">${fmt(totalMensual)}</div>
+      <div class="kpi-sub">${activas.length} compra${activas.length!==1?'s':''} activa${activas.length!==1?'s':''}</div>
+    </div>
+    <div class="cuotas-kpi-card">
+      <div class="kpi-label">DEUDA TOTAL RESTANTE</div>
+      <div class="kpi-valor">${fmt(totalDeuda)}</div>
+      <div class="kpi-sub">en cuotas pendientes</div>
+    </div>`;
+  document.getElementById('cuotas-tab-activas').textContent=`Activas (${activas.length})`;
+  document.getElementById('cuotas-tab-completadas').textContent=`Completadas (${completadas.length})`;
+  if(!lista.length){
+    document.getElementById('cuotas-lista').innerHTML=`<div class="empty">No hay compras ${cuotasTab==='activas'?'activas':'completadas'}</div>`;
+    return;
+  }
+  document.getElementById('cuotas-lista').innerHTML=lista.map(c=>{
+    const pct=c.numeroCuotas>0?Math.round((c.cuotasPagadas/c.numeroCuotas)*100):0;
+    const completada=c.cuotasRestantes<=0;
+    const cuotaActual=c.cuotasPagadas+1;
+    const mesProxima=(()=>{
+      if(completada)return '—';
+      let baseDate;
+      if(c.ultimaCuotaFecha&&c.ultimaCuotaFecha.length>=10){
+        baseDate=new Date(c.ultimaCuotaFecha+'T00:00:00');
+      }else if(c.fechaCompra&&c.fechaCompra.length>=10){
+        baseDate=new Date(c.fechaCompra+'T00:00:00');
+      }else{return '—';}
+      if(isNaN(baseDate.getTime()))return '—';
+      const dia=baseDate.getDate();
+      const mesDestino=baseDate.getMonth()+1;
+      const anioDestino=mesDestino>11?baseDate.getFullYear()+1:baseDate.getFullYear();
+      const mesDestinoIdx=mesDestino%12;
+      const ultimoDia=new Date(anioDestino,mesDestinoIdx+1,0).getDate();
+      const diaFinal=Math.min(dia,ultimoDia);
+      const fechaProxima=new Date(anioDestino,mesDestinoIdx,diaFinal);
+      const dd=String(fechaProxima.getDate()).padStart(2,'0');
+      const mm=String(fechaProxima.getMonth()+1).padStart(2,'0');
+      const yyyy=fechaProxima.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    })();
+    const ultimaPagada=c.ultimaCuotaFecha?'Último pago: '+fmtFechaCorta(c.ultimaCuotaFecha):(c.cuotasPagadas>0?'Sin fecha registrada':'');
+    const barColor=completada?'#2e7d32':pct>=80?'#e65100':'#1a73e8';
+    const tarjetaClass=c.tarjeta==='Gold'?'cuotas-tarjeta-gold':'cuotas-tarjeta-visa';
+    const itemSafe=c.item.replace(/'/g,"\\'");
+    return `<div class="cuotas-card">
+      <div class="cuotas-card-header">
+        <div class="cuotas-card-info">
+          <div class="cuotas-card-desc">${c.item}</div>
+          <div class="cuotas-card-tags">
+            <span class="${tarjetaClass}">${c.tarjeta}</span>
+            <span style="font-size:11px;color:#999;">Total: ${fmt(c.montoTotal)}</span>
+          </div>
+        </div>
+        <div class="cuotas-card-monto">
+          <div class="cuotas-monto-cuota" style="color:${completada?'#2e7d32':'#c62828'};">${fmt(c.valorCuota)}</div>
+          <div style="font-size:10px;color:#aaa;">por cuota</div>
+        </div>
+      </div>
+      <div class="cuotas-progress-label">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <span>${completada?'✓ Completado':`Próximo pago: ${mesProxima} — Cuota ${cuotaActual}`}</span>
+          ${ultimaPagada?`<span style="font-size:10px;color:#bbb;">${ultimaPagada}</span>`:''}
+        </div>
+        <span style="font-weight:600;color:${completada?'#2e7d32':'#555'};">${pct}%</span>
+      </div>
+      <div class="cuotas-progress-bar">
+        <div class="cuotas-progress-fill" style="width:${Math.min(pct,100)}%;background:${barColor};"></div>
+      </div>
+      <div class="cuotas-card-footer">
+        <div class="cuotas-badges">
+          <span class="cuotas-badge-pagadas">${c.cuotasPagadas}/${c.numeroCuotas} pagadas</span>
+          ${!completada?`<span class="cuotas-badge-restantes">${c.cuotasRestantes} restante${c.cuotasRestantes!==1?'s':''}</span>`:''}
+          ${!completada?`<span class="cuotas-badge-pendiente">${fmt(c.montoPendiente)} pendiente</span>`:''}
+        </div>
+        ${!completada
+          ?`<button class="cuotas-pagar-btn" onclick="abrirPagarCuota('${itemSafe}')">💳 Pagar cuota</button>`
+          :`<span style="font-size:11px;color:#2e7d32;font-weight:500;">✓ Sin deuda</span>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selCuotaTarjeta(el,tarjeta){
+  cuotaTarjetaSeleccionada=tarjeta;
+  document.querySelectorAll('.cuotas-tarjeta-btn').forEach(b=>{
+    b.className='cuotas-tarjeta-btn';
+    b.querySelector('span').style.color='#666';
+  });
+  el.classList.add(tarjeta==='Gold'?'active-gold':'active-visa');
+  el.querySelector('span').style.color=tarjeta==='Gold'?'#f57f17':'#1a73e8';
+}
+
+function actualizarPreviewCuota(){
+  const num=parseInt(document.getElementById('cuota-num-cuotas').value)||0;
+  const cuota=parseMonto(document.getElementById('cuota-valor-cuota').value)||0;
+  const total=parseMonto(document.getElementById('cuota-monto-total').value)||0;
+  const prev=document.getElementById('cuota-preview');
+  if(num&&cuota){
+    const totalCuotas=num*cuota;
+    const diff=totalCuotas-total;
+    prev.style.display='block';
+    document.getElementById('cuota-preview-total').textContent=fmt(totalCuotas);
+    const diffEl=document.getElementById('cuota-preview-diff');
+    if(total>0){
+      diffEl.textContent=(diff>0?'+':'')+fmt(diff)+(diff>0?' (intereses)':' (descuento)');
+      diffEl.style.color=diff>0?'#c62828':'#2e7d32';
+    }else{
+      diffEl.textContent='—';diffEl.style.color='#999';
+    }
+  }else{
+    prev.style.display='none';
+  }
+}
+
+function abrirNuevaCuota(){
+  document.getElementById('cuota-item').value='';
+  document.getElementById('cuota-fecha-compra').valueAsDate=new Date();
+  document.getElementById('cuota-monto-total').value='';
+  document.getElementById('cuota-num-cuotas').value='';
+  document.getElementById('cuota-valor-cuota').value='';
+  document.getElementById('cuota-preview').style.display='none';
+  cuotaTarjetaSeleccionada='Gold';
+  document.querySelectorAll('.cuotas-tarjeta-btn').forEach(b=>{
+    b.className='cuotas-tarjeta-btn';
+    b.querySelector('span').style.color='#666';
+  });
+  const goldBtn=document.querySelector('.cuotas-tarjeta-btn[data-tarjeta="Gold"]');
+  if(goldBtn){goldBtn.classList.add('active-gold');goldBtn.querySelector('span').style.color='#f57f17';}
+  document.getElementById('ov-nueva-cuota').classList.add('open');
+}
+
+async function guardarNuevaCuota(){
+  const item=document.getElementById('cuota-item').value.trim();
+  const fechaCompra=document.getElementById('cuota-fecha-compra').value;
+  const montoTotal=parseMonto(document.getElementById('cuota-monto-total').value)||0;
+  const numeroCuotas=parseInt(document.getElementById('cuota-num-cuotas').value)||0;
+  const valorCuota=parseMonto(document.getElementById('cuota-valor-cuota').value)||0;
+  if(!item||!fechaCompra||!montoTotal||!numeroCuotas||!valorCuota){mostrarToast('Completa todos los campos');return;}
+  const btn=document.getElementById('btn-guardar-cuota');
+  btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    const res=await fetch('/api/cuotas',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({item,fechaCompra,tarjeta:cuotaTarjetaSeleccionada,montoTotal,numeroCuotas,valorCuota})
+    });
+    if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Error '+res.status);}
+    cerrar('ov-nueva-cuota');
+    mostrarToast('Compra en cuotas registrada ✓');
+    await cargarCuotas();renderCuotas();
+  }catch(e){mostrarToast('Error al guardar: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='Registrar compra en cuotas';}
+}
+
+function abrirPagarCuota(item){
+  const c=cuotasData.find(x=>x.item===item);
+  if(!c)return;
+  cuotaPendientePago=c;
+  const cuotaNum=c.cuotasPagadas+1;
+  document.getElementById('pagar-cuota-detalle').innerHTML=`
+    <div style="font-size:12px;color:#888;margin-bottom:4px;">${c.tarjeta}</div>
+    <div style="font-size:15px;font-weight:600;color:#111;margin-bottom:2px;">${c.item}</div>
+    <div style="font-size:22px;font-weight:700;color:#111;margin:6px 0;">${fmt(c.valorCuota)}</div>
+    <div style="font-size:12px;color:#999;">Cuota ${cuotaNum} de ${c.numeroCuotas}</div>`;
+  document.getElementById('pagar-cuota-fecha').valueAsDate=new Date();
+  document.getElementById('ov-pagar-cuota').classList.add('open');
+}
+
+async function confirmarPagarCuota(){
+  if(!cuotaPendientePago)return;
+  const c=cuotaPendientePago;
+  const fecha=document.getElementById('pagar-cuota-fecha').value;
+  if(!fecha){mostrarToast('Selecciona la fecha del pago');return;}
+  const cuotaNum=c.cuotasPagadas+1;
+  cerrar('ov-pagar-cuota');
+  mostrarLoading('Registrando pago...');
+  try{
+    const res=await fetch('/api/cuotas/pagar',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({fecha,item:c.item,cuotaNum,cuotasTotales:c.numeroCuotas,valorCuota:c.valorCuota})
+    });
+    if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Error '+res.status);}
+    mostrarToast(`Cuota ${cuotaNum} de ${c.item} registrada ✓`);
+    await new Promise(r=>setTimeout(r,1500));
+    await cargarCuotas();renderCuotas();
+  }catch(e){mostrarToast('Error: '+e.message);}
+  finally{ocultarLoading();cuotaPendientePago=null;}
+}
+
+document.getElementById('ov-nueva-cuota').addEventListener('click',e=>{if(e.target===document.getElementById('ov-nueva-cuota'))cerrar('ov-nueva-cuota');});
+document.getElementById('ov-pagar-cuota').addEventListener('click',e=>{if(e.target===document.getElementById('ov-pagar-cuota'))cerrar('ov-pagar-cuota');});
+
+const CUOTAS_COLORS=['#378ADD','#D85A30','#1D9E75','#BA7517','#534AB7','#993556'];
+
+function renderCuotasHomeChart(){
+  if(typeof Chart==='undefined'){
+    const script=document.createElement('script');
+    script.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js';
+    script.onload=()=>renderCuotasHomeChart();
+    document.head.appendChild(script);
+    return;
+  }
+
+  if(!cuotasData||cuotasData.length===0){
+    const kpisEl=document.getElementById('cuotas-home-kpis');
+    if(kpisEl)kpisEl.innerHTML='';
+    const wrap=document.getElementById('cuotas-home-chart-wrap');
+    if(wrap)wrap.innerHTML='<div style="padding:24px;text-align:center;font-size:13px;color:#bbb;">Sin compras en cuotas activas</div>';
+    return;
+  }
+  const activas=cuotasData.filter(c=>c.cuotasRestantes>0);
+  if(!activas.length){
+    const wrap=document.getElementById('cuotas-home-chart-wrap');
+    if(wrap)wrap.innerHTML='<div style="padding:24px;text-align:center;font-size:13px;color:#bbb;">Sin compras en cuotas activas</div>';
+    return;
+  }
+
+  const ahora=new Date();
+  const mesHoy=ahora.getMonth();
+  const anioHoy=ahora.getFullYear();
+
+  let maxMeses=0;
+  activas.forEach(c=>{
+    if(!c.fechaCompra)return;
+    const inicio=new Date(c.fechaCompra+'T00:00:00');
+    if(isNaN(inicio.getTime()))return;
+    const ultima=new Date(inicio);
+    ultima.setMonth(ultima.getMonth()+c.numeroCuotas);
+    const diff=(ultima.getFullYear()-anioHoy)*12+(ultima.getMonth()-mesHoy);
+    if(diff>maxMeses)maxMeses=diff;
+  });
+  maxMeses=Math.max(maxMeses,3);
+
+  const mesesLabels=[];
+  const mesesDates=[];
+  for(let i=0;i<=maxMeses;i++){
+    const d=new Date(anioHoy,mesHoy+i,1);
+    mesesLabels.push(mesesC[d.getMonth()]+' '+d.getFullYear());
+    mesesDates.push({mes:d.getMonth(),anio:d.getFullYear()});
+  }
+
+  const itemsConIndices=activas.map((c,idx)=>{
+    if(!c.fechaCompra)return null;
+    const inicioCompra=new Date(c.fechaCompra+'T00:00:00');
+    if(isNaN(inicioCompra.getTime()))return null;
+    const data=mesesDates.map(({mes,anio})=>{
+      const diffMeses=(anio-inicioCompra.getFullYear())*12+(mes-inicioCompra.getMonth());
+      if(diffMeses>=1&&diffMeses<=c.numeroCuotas&&diffMeses>c.cuotasPagadas)return c.valorCuota;
+      return 0;
+    });
+    return{item:c,color:CUOTAS_COLORS[idx%CUOTAS_COLORS.length],data};
+  }).filter(Boolean);
+
+  const totalPorMes=mesesDates.map((_,i)=>itemsConIndices.reduce((s,it)=>s+(it.data[i]||0),0));
+
+  const totalMensualActual=itemsConIndices.reduce((s,it)=>s+(it.data[0]||0),0);
+  const totalDeuda=activas.reduce((s,c)=>s+c.montoPendiente,0);
+
+  const kpisEl=document.getElementById('cuotas-home-kpis');
+  if(kpisEl)kpisEl.innerHTML=`
+    <div style="background:#f5f5f5;border-radius:10px;padding:11px 10px;">
+      <div class="kpi-label">CUOTA ESTE MES</div>
+      <div style="font-size:16px;font-weight:600;color:#c62828;">${fmt(totalMensualActual)}</div>
+    </div>
+    <div style="background:#f5f5f5;border-radius:10px;padding:11px 10px;">
+      <div class="kpi-label">DEUDA RESTANTE</div>
+      <div style="font-size:16px;font-weight:600;color:#111;">${fmt(totalDeuda)}</div>
+    </div>`;
+
+  const legendEl=document.getElementById('cuotas-home-legend');
+  if(legendEl)legendEl.innerHTML=[
+    ...itemsConIndices.map(it=>`<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#888;"><div style="width:10px;height:10px;border-radius:2px;background:${it.color};flex-shrink:0;"></div>${it.item.item}</div>`),
+    `<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#888;"><div style="width:18px;height:2px;background:#1D9E75;flex-shrink:0;margin-right:2px;"></div>Total mes</div>`
+  ].join('');
+
+  const chartWrap=document.getElementById('cuotas-home-chart-wrap');
+  const canvasWidth=Math.max(600,mesesLabels.length*52);
+  if(chartWrap)chartWrap.style.minWidth=canvasWidth+'px';
+
+  const existing=Chart.getChart('cuotasHomeChart');
+  if(existing)existing.destroy();
+
+  const canvas=document.getElementById('cuotasHomeChart');
+  if(!canvas)return;
+  canvas.width=canvasWidth;
+  canvas.height=220;
+  canvas.style.width=canvasWidth+'px';
+  canvas.style.height='220px';
+
+  const isDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridColor=isDark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)';
+  const labelColor=isDark?'#aaa':'#888';
+
+  const datasets=[
+    ...itemsConIndices.map(it=>({
+      label:it.item.item,data:it.data,
+      backgroundColor:it.color,borderRadius:3,borderSkipped:false,stack:'cuotas',
+    })),
+    {
+      label:'Total mes',data:totalPorMes,type:'line',
+      borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.08)',
+      borderWidth:2,pointRadius:3,pointBackgroundColor:'#1D9E75',fill:false,tension:0.3,
+    }
+  ];
+
+  new Chart(canvas,{
+    type:'bar',
+    data:{labels:mesesLabels,datasets},
+    options:{
+      responsive:false,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          enabled:false,
+          external:function(context){
+            const tip=document.getElementById('cuotas-home-tooltip');
+            if(!tip)return;
+            if(context.tooltip.opacity===0){tip.style.display='none';return;}
+            const dp=context.tooltip.dataPoints;
+            const mesLabel=dp[0]?.label||'';
+            let html=`<b>${mesLabel}</b><br>`;
+            let total=0;
+            dp.forEach(p=>{
+              if(p.raw>0&&p.dataset.type!=='line'){
+                html+=`<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${p.dataset.backgroundColor};margin-right:5px;"></span>${p.dataset.label}: ${fmt(p.raw)}<br>`;
+                total+=p.raw;
+              }
+            });
+            if(total>0)html+=`<b>Total: ${fmt(total)}</b>`;
+            tip.innerHTML=html;
+            tip.style.display='block';
+            let left=context.tooltip.caretX+12;
+            const wrapWidth=chartWrap?chartWrap.offsetWidth:600;
+            if(left+220>wrapWidth)left=context.tooltip.caretX-230;
+            tip.style.left=left+'px';
+            tip.style.top=Math.max(0,context.tooltip.caretY-50)+'px';
+          }
+        }
+      },
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:{color:labelColor,font:{size:10},autoSkip:false,maxRotation:45}},
+        y:{stacked:true,grid:{color:gridColor},border:{display:false},ticks:{color:labelColor,font:{size:10},callback:v=>v>=1000000?'$'+Math.round(v/1000000)+'M':v>=1000?'$'+Math.round(v/1000)+'k':'$'+v}}
+      }
+    }
+  });
+}
+
 cargarDatos();
   
