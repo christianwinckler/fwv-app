@@ -23,6 +23,11 @@ function LoginContent() {
     } catch (e) {}
   }, [])
 
+  const handleLogin = () => {
+    sessionStorage.setItem('pwa_redirect', '/home')
+    signIn('google', { callbackUrl: '/home' })
+  }
+
   const toggleDark = () => {
     const next = !dark
     setDark(next)
@@ -126,10 +131,7 @@ function LoginContent() {
 
           {/* Google sign-in */}
           <button
-            onClick={() => {
-              sessionStorage.setItem('pwa_redirect', '/home')
-              signIn('google', { callbackUrl: '/home' })
-            }}
+            onClick={handleLogin}
             style={{
               width: '100%', padding: '12px',
               background: bg,
