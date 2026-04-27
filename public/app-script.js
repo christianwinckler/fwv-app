@@ -1575,7 +1575,20 @@ document.getElementById('btn-guardar').addEventListener('click',async()=>{
       document.getElementById('post-gasto-desc').textContent=`"${descCorta}" \u2014 ${fmt(monto)}`;
       document.getElementById('ov-post-gasto').classList.add('open');
       bloquearScrollFondo();
+      const btnDividir=document.getElementById('post-btn-dividir');
+      if(btnDividir){
+        btnDividir.style.opacity='0.4';
+        btnDividir.style.pointerEvents='none';
+        btnDividir.querySelector('.alcance-txt-sub').textContent='Cargando datos...';
+      }
       cargarDatos().then(()=>{
+        setTimeout(()=>{
+          if(btnDividir){
+            btnDividir.style.opacity='1';
+            btnDividir.style.pointerEvents='auto';
+            btnDividir.querySelector('.alcance-txt-sub').textContent='Distribuir en subcategorías';
+          }
+        },2000);
         const screenActiva=document.querySelector('.screen.active')?.id;
         if(screenActiva==='screen-detalle') renderDetalle();
         if(screenActiva==='screen-dashboard') renderDashboard();
