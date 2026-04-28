@@ -33,6 +33,7 @@ window.toggleDetCat=toggleDetCat;
 window.aplicarDetFiltros=aplicarDetFiltros;
 window.limpiarDetFiltros=limpiarDetFiltros;
 window.renderHome=renderHome;
+window.toggleEye=toggleEye;
 window.toggleHomeFiltro=toggleHomeFiltro;
 window.cerrarHomeFiltro=cerrarHomeFiltro;
 window.toggleHomeCat=toggleHomeCat;
@@ -77,6 +78,20 @@ window.cuadAbrirAjuste=cuadAbrirAjuste;
 window.confirmarAjusteCuadratura=confirmarAjusteCuadratura;
 window.cerrarResultadoCuadratura=cerrarResultadoCuadratura;
 window.registrarCuadratura=registrarCuadratura;
+
+window._eyeHidden = {santander: false, falabella: false, tc: false};
+
+function toggleEye(key) {
+  window._eyeHidden[key] = !window._eyeHidden[key];
+  const btn = document.getElementById('eye-btn-' + key);
+  if (btn) {
+    btn.classList.toggle('hidden', window._eyeHidden[key]);
+    btn.innerHTML = window._eyeHidden[key]
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  }
+  renderHome();
+}
 
 const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const mesesC=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -1672,7 +1687,7 @@ function renderHome(){
   const sant=allGastos.filter(g=>g.banco==='Santander').reduce((s,g)=>s+g.montoValido,0);
   const santEl=document.getElementById('kpi-sant');
   if(santEl){
-    santEl.querySelector('.kpi-valor').innerHTML=fmt(sant);
+    santEl.querySelector('.kpi-valor').innerHTML=window._eyeHidden.santander?'••••••':fmt(sant);
   }
   // Parte 1: montoValido donde sub = "Banco - Ingreso a Falabella desde Ahorros"
   const fala1 = allGastos
@@ -1692,7 +1707,7 @@ function renderHome(){
   const fala = fala1 + fala2 + fala3;
   const falaEl=document.getElementById('kpi-fala');
   if(falaEl){
-    falaEl.querySelector('.kpi-valor').innerHTML=fmt(fala);
+    falaEl.querySelector('.kpi-valor').innerHTML=window._eyeHidden.falabella?'••••••':fmt(fala);
   }
 
   // ── KPI ÚLTIMO MES ACTIVO FALABELLA ──────────────
@@ -1733,8 +1748,8 @@ function renderHome(){
   const saldoTC=montoInicialTC-gastosAbsTC+pagosTC-deudaCuotas;
   const tcEl=document.getElementById('kpi-tc');
   if(tcEl){
-    tcEl.textContent=(saldoTC>=0?'':'-')+fmt(Math.abs(saldoTC));
-    tcEl.style.color=saldoTC>=0?'#2e7d32':'#c62828';
+    tcEl.textContent=window._eyeHidden.tc?'••••••':(saldoTC>=0?'':'-')+fmt(Math.abs(saldoTC));
+    tcEl.style.color=window._eyeHidden.tc?'#8e8e93':saldoTC>=0?'#2e7d32':'#c62828';
   }
 
   // ── CATEGORÍAS CLAVE ─────────────────────────────

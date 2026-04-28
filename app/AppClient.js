@@ -718,6 +718,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   cursor: pointer; flex-shrink: 0;
 }
 .cuad-check-btn svg { width: 13px; height: 13px; }
+.eye-toggle-btn {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #F2F2F7; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; color: #8e8e93;
+}
+.eye-toggle-btn.hidden {
+  background: rgba(0,122,255,0.12);
+  color: #007AFF;
+}
 .cuad-result-ok {
   background: #e8f5e9; border-radius: 10px;
   padding: 12px 14px; margin-bottom: 14px;
@@ -1029,6 +1039,9 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
           <div class="kpi-label">SANTANDER</div>
           <div class="kpi-valor" id="kpi-sant-val"><span class="skeleton skeleton-valor"></span></div>
           <div class="kpi-badge badge-s">Cuenta corriente</div>
+          <button class="eye-toggle-btn" id="eye-btn-santander" style="position:absolute;top:10px;right:42px;" onclick="toggleEye('santander')" title="Ocultar monto">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
           <button class="cuad-check-btn" onclick="abrirCuadratura('Santander')" title="Cuadrar saldo">
             <svg viewBox="0 0 16 16" fill="none">
               <circle cx="8" cy="8" r="7" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="1"/>
@@ -1040,6 +1053,9 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
           <div class="kpi-label">FALABELLA</div>
           <div class="kpi-valor" id="kpi-fala-val"><span class="skeleton skeleton-valor"></span></div>
           <div class="kpi-badge badge-f">Cuenta corriente</div>
+          <button class="eye-toggle-btn" id="eye-btn-falabella" style="position:absolute;top:10px;right:42px;" onclick="toggleEye('falabella')" title="Ocultar monto">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
           <button class="cuad-check-btn" onclick="abrirCuadratura('Falabella')" title="Cuadrar saldo">
             <svg viewBox="0 0 16 16" fill="none">
               <circle cx="8" cy="8" r="7" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="1"/>
@@ -1070,6 +1086,9 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           <div class="kpi-badge badge-tc">TC</div>
+          <button class="eye-toggle-btn" id="eye-btn-tc" onclick="toggleEye('tc')" title="Ocultar monto">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
           <button class="cuad-check-btn" style="position:relative;top:auto;right:auto;" onclick="abrirCuadratura('Tarjeta Crédito')" title="Cuadrar saldo">
             <svg viewBox="0 0 16 16" fill="none">
               <circle cx="8" cy="8" r="7" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="1"/>
