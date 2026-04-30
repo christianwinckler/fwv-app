@@ -3532,17 +3532,75 @@ async function guardarNuevaCuota(){
   finally{btn.disabled=false;btn.textContent='Registrar compra en cuotas';}
 }
 
-function abrirPagarCuota(item){
-  const c=cuotasData.find(x=>x.item===item);
-  if(!c)return;
-  cuotaPendientePago=c;
+function _rellenarModalPagarCuota(c){
   const cuotaNum=c.cuotasPagadas+1;
   document.getElementById('pagar-cuota-detalle').innerHTML=`
     <div style="font-size:12px;color:#888;margin-bottom:4px;">${c.tarjeta}</div>
     <div style="font-size:15px;font-weight:600;color:#111;margin-bottom:2px;">${c.item}</div>
     <div style="font-size:22px;font-weight:700;color:#111;margin:6px 0;">${fmt(c.valorCuota)}</div>
     <div style="font-size:12px;color:#999;">Cuota ${cuotaNum} de ${c.numeroCuotas}</div>`;
-  document.getElementById('pagar-cuota-fecha').valueAsDate=new Date();
+}
+
+function abrirPagarCuota(item){
+  const c=cuotasData.find(x=>x.item===item);
+  if(!c)return;
+  cuotaPendientePago=c;
+
+  const hoy=new Date();
+  const mesHoy=hoy.getMonth();
+  const anioHoy=hoy.getFullYear();
+  const keyHoy=String(mesHoy+1).padStart(2,'0')+'-'+anioHoy;
+  const gastosHoy=detalleData[keyHoy]||[];
+  const pagoExistente=gastosHoy.find(g=>g.sub==='TC - Pagos en Cuotas'&&g.desc.startsWith(c.item));
+
+  if(pagoExistente){
+    const fechaSig=new Date(anioHoy,mesHoy+1,1);
+    const fechaSigISO=fechaSig.toISOString().slice(0,10);
+    const mesSigNombre=meses[fechaSig.getMonth()];
+    const anioSig=fechaSig.getFullYear();
+
+    const fechaExist=new Date(pagoExistente.fecha+'T00:00:00');
+    const diaExist=fechaExist.getDate();
+    const mesExistNombre=meses[fechaExist.getMonth()];
+
+    document.getElementById('duplicado-detalle').innerHTML=
+      `<strong>${c.item}</strong> ya tiene un pago registrado este mes:<br><br>`+
+      `📅 Fecha: <strong>${diaExist} de ${mesExistNombre} ${fechaExist.getFullYear()}</strong><br>`+
+      `💰 Monto: <strong>${fmt(pagoExistente.monto)}</strong><br>`+
+      `💳 Cuota: <strong>${pagoExistente.desc.replace(c.item+' - ','')}</strong>`;
+
+    document.getElementById('duplicado-sugerencia').textContent=
+      `¿Querés registrar este pago para el 1 de ${mesSigNombre} ${anioSig} (próximo mes)?`;
+
+    const btnMover=document.getElementById('btn-duplicado-mover');
+    btnMover.textContent=`Mover al 1 de ${mesSigNombre} ${anioSig}`;
+    btnMover.onclick=()=>{
+      cerrar('ov-duplicado-mensual');
+      document.getElementById('pagar-cuota-fecha').value=fechaSigISO;
+      _rellenarModalPagarCuota(c);
+      document.getElementById('ov-pagar-cuota').classList.add('open');
+      bloquearScrollFondo();
+    };
+
+    const btnIgual=document.querySelector('#ov-duplicado-mensual button[onclick="duplicadoGuardarIgual()"]');
+    if(btnIgual){
+      btnIgual.textContent='Registrar igual con fecha de hoy';
+      btnIgual.onclick=()=>{
+        cerrar('ov-duplicado-mensual');
+        document.getElementById('pagar-cuota-fecha').value=hoy.toISOString().slice(0,10);
+        _rellenarModalPagarCuota(c);
+        document.getElementById('ov-pagar-cuota').classList.add('open');
+        bloquearScrollFondo();
+      };
+    }
+
+    document.getElementById('ov-duplicado-mensual').classList.add('open');
+    bloquearScrollFondo();
+    return;
+  }
+
+  document.getElementById('pagar-cuota-fecha').value=hoy.toISOString().slice(0,10);
+  _rellenarModalPagarCuota(c);
   document.getElementById('ov-pagar-cuota').classList.add('open');
   bloquearScrollFondo();
 }
