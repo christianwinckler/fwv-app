@@ -322,6 +322,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .admin-ie-opt.active-i { border-color: #2e7d32; background: #e8f5e9; color: #2e7d32; }
 .admin-ie-opt.active-activo { border-color: #2e7d32; background: #e8f5e9; color: #2e7d32; }
 .admin-ie-opt.active-oculto { border-color: #999; background: #f0f0f0; color: #555; }
+.admin-ie-opt.active-mensual { border-color: #1a73e8; background: #e8f0fe; color: #1a73e8; }
+.admin-ie-opt.active-variable { border-color: #e65100; background: #fff3e0; color: #e65100; }
 .admin-chip { padding: 5px 12px; border-radius: 14px; font-size: 12px; border: 0.5px solid #e0e0e0; background: #fff; color: #555; cursor: pointer; font-family: inherit; }
 .admin-chip.active { border-color: #1a73e8; background: #e8f0fe; color: #1a73e8; font-weight: 500; }
 .admin-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
@@ -963,6 +965,28 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
           <button id="det-filtro-btn" style="width:32px;height:32px;border:0.5px solid #e0e0e0;border-radius:8px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5 8h6M7 12h2" stroke="#666" stroke-width="1.5" stroke-linecap="round"/></svg>
           </button>
+          <button id="btn-modo-seleccion" onclick="toggleModoSeleccion()"
+            style="padding:6px 11px;border-radius:8px;font-size:12px;font-weight:500;border:0.5px solid #1a73e8;background:#e8f0fe;color:#1a73e8;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;">
+            ✓ Seleccionar
+          </button>
+        </div>
+      </div>
+      <div id="selection-bar" style="display:none;background:#e8f0fe;border-bottom:0.5px solid #c5d9f7;padding:8px 12px;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div id="check-all-btn" onclick="toggleSeleccionTodos()"
+            style="width:20px;height:20px;border-radius:4px;border:1.5px solid #1a73e8;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
+          </div>
+          <span id="sel-count-label" style="font-size:13px;font-weight:500;color:#1a73e8;">0 seleccionados</span>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button onclick="toggleModoSeleccion()"
+            style="padding:5px 12px;border-radius:8px;font-size:12px;border:0.5px solid #aac4f0;background:#fff;color:#1a73e8;cursor:pointer;font-family:inherit;">
+            Cancelar
+          </button>
+          <button id="btn-cambiar-fecha" onclick="abrirModalCambioFecha()"
+            style="padding:5px 12px;border-radius:8px;font-size:12px;border:none;background:#1a73e8;color:#fff;cursor:pointer;font-family:inherit;font-weight:500;opacity:0.4;">
+            Cambiar fecha →
+          </button>
         </div>
       </div>
       <div id="det-filter-panel" style="display:none;background:#fff;padding:12px 16px;border-bottom:0.5px solid #e0e0e0;z-index:20;position:relative;"></div>
@@ -1493,6 +1517,13 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
         <div class="admin-ie-opt" data-estado="Oculto" onclick="selAdminEstado(this,'Oculto')">Oculto</div>
       </div>
     </div>
+    <div class="admin-field">
+      <label>FRECUENCIA DE PAGO</label>
+      <div class="admin-ie-group" id="admin-edit-frecuencia">
+        <div class="admin-ie-opt" data-frecuencia="Mensual" onclick="selAdminFrecuencia(this,'Mensual')">Mensual</div>
+        <div class="admin-ie-opt" data-frecuencia="Variable" onclick="selAdminFrecuencia(this,'Variable')">Variable</div>
+      </div>
+    </div>
     <button class="btn-admin-guardar" onclick="guardarEditSubcat()">Guardar cambios</button>
     <button class="btn-admin-eliminar" onclick="eliminarSubcatAdmin(adminEditandoSubcat?.oldSub)">Eliminar subcategoría</button>
   </div>
@@ -1739,6 +1770,43 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
     <div class="cuad-preview-card" id="cuad-ajuste-preview"></div>
     <button style="width:100%;padding:13px;background:#111;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;margin-bottom:8px;" onclick="confirmarAjusteCuadratura()">Confirmar ajuste</button>
     <button style="width:100%;padding:12px;background:#f5f5f5;color:#666;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit;" onclick="cerrar('ov-cuadratura-ajuste')">Volver</button>
+  </div>
+</div>
+
+<div class="overlay" id="ov-cambio-fecha">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 4px;">
+      <div class="sheet-title" style="margin-bottom:0;">Cambiar fecha</div>
+      <button style="width:28px;height:28px;border-radius:50%;background:#f5f5f5;border:none;cursor:pointer;font-size:14px;color:#666;" onclick="cerrar('ov-cambio-fecha')">✕</button>
+    </div>
+    <div id="cambio-fecha-sub" style="font-size:13px;color:#888;margin-bottom:14px;"></div>
+    <div id="cambio-fecha-preview" style="background:#f5f5f5;border-radius:10px;padding:10px 12px;margin-bottom:14px;"></div>
+    <div style="font-size:11px;font-weight:500;color:#888;letter-spacing:0.04em;margin-bottom:6px;">NUEVA FECHA</div>
+    <input type="date" id="input-nueva-fecha"
+      style="width:100%;padding:11px 12px;border:0.5px solid #ddd;border-radius:10px;font-size:15px;font-family:inherit;margin-bottom:12px;box-sizing:border-box;"
+      oninput="actualizarAvisoCambioFecha()" />
+    <div id="aviso-cambio-fecha"
+      style="background:#fff8e1;border:0.5px solid #ffe082;border-radius:8px;padding:10px 12px;font-size:12px;color:#854F0B;line-height:1.5;margin-bottom:14px;">
+      Todos los gastos seleccionados quedarán con fecha <strong id="fecha-display-label"></strong>.
+      Esta acción afecta el mes al que se imputan en el resumen.
+    </div>
+    <button style="width:100%;padding:13px;background:#111;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;margin-bottom:8px;" onclick="confirmarCambioFecha()">Confirmar cambio de fecha</button>
+    <button style="width:100%;padding:12px;background:#f5f5f5;color:#666;border:none;border-radius:12px;font-size:14px;cursor:pointer;font-family:inherit;" onclick="cerrar('ov-cambio-fecha')">Cancelar</button>
+  </div>
+</div>
+
+<div class="alcance-overlay" id="ov-duplicado-mensual">
+  <div class="alcance-card" style="max-width:360px;width:100%;">
+    <div style="font-size:22px;text-align:center;margin-bottom:10px;">⚠️</div>
+    <div class="alcance-titulo" style="text-align:center;">Pago ya registrado</div>
+    <div id="duplicado-detalle" style="background:#f5f5f5;border-radius:10px;padding:12px 14px;margin:12px 0;font-size:13px;line-height:1.6;color:#333;"></div>
+    <div style="font-size:13px;color:#888;margin-bottom:16px;line-height:1.5;" id="duplicado-sugerencia"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button id="btn-duplicado-mover" style="width:100%;padding:13px;background:#111;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;"></button>
+      <button onclick="duplicadoGuardarIgual()" style="width:100%;padding:13px;background:#f5f5f5;color:#555;border:none;border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit;">Guardar igual con fecha de hoy</button>
+      <button onclick="cerrar('ov-duplicado-mensual')" style="width:100%;padding:12px;background:#fff;color:#999;border:0.5px solid #e0e0e0;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit;">Cancelar</button>
+    </div>
   </div>
 </div>
 
