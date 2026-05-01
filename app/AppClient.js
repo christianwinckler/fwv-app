@@ -1153,6 +1153,11 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
             <div class="kpi-badge badge-tc">Tarjeta Gold Limited</div>
           </div>
           <div style="position:absolute;top:0;right:0;display:flex;align-items:center;gap:6px;">
+            <button onclick="abrirDetalleTarjeta()"
+              style="width:24px;height:24px;border-radius:50%;background:#e8f0fe;border:0.5px solid #aac4f0;display:flex;align-items:center;justify-content:center;cursor:pointer;"
+              title="Ver detalle">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
             <button class="cuad-check-btn" style="position:relative;top:auto;right:auto;" onclick="abrirCuadratura('Tarjeta Crédito')" title="Cuadrar saldo">
               <svg viewBox="0 0 16 16" fill="none">
                 <circle cx="8" cy="8" r="7" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="1"/>
@@ -1807,6 +1812,21 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
       <button onclick="duplicadoGuardarIgual()" style="width:100%;padding:13px;background:#f5f5f5;color:#555;border:none;border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit;">Guardar igual con fecha de hoy</button>
       <button onclick="cerrar('ov-duplicado-mensual')" style="width:100%;padding:12px;background:#fff;color:#999;border:0.5px solid #e0e0e0;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit;">Cancelar</button>
     </div>
+  </div>
+</div>
+
+<!-- TC DETALLE -->
+<div class="overlay" id="ov-tc-detalle">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 12px;">
+      <div class="sheet-title" style="margin-bottom:0;">Detalle Tarjeta de Crédito</div>
+      <button style="width:28px;height:28px;border-radius:50%;background:#f5f5f5;border:none;cursor:pointer;font-size:14px;color:#666;" onclick="cerrar('ov-tc-detalle')">✕</button>
+    </div>
+    <div style="margin-bottom:14px;">
+      <span style="background:#fff8e1;color:#f57f17;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:500;">Tarjeta Gold Limited</span>
+    </div>
+    <div id="tc-detalle-content"></div>
   </div>
 </div>
 

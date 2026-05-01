@@ -7,11 +7,11 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return Response.json({ error: 'No autorizado' }, { status: 401 })
   try {
-    const [data, montoInicialTC] = await Promise.all([
+    const [data, tcData] = await Promise.all([
       getParametros(),
       getMontoInicialTC(),
     ])
-    return Response.json({ rows: data, montoInicialTC })
+    return Response.json({ rows: data, montoInicialTC: tcData.total, montoInicialTCB1: tcData.b1, montoInicialTCB2: tcData.b2 })
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 })
   }

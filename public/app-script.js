@@ -596,6 +596,8 @@ const catBgs={'Hogar':'#e8f0fe','Supermercado':'#e8f5e9','Auto':'#fff3e0','Banco
 
 let subcats=[];
 let montoInicialTC=0;
+let montoInicialTCB1=0;
+let montoInicialTCB2=0;
 
 let pptoData={};
 let presupuestoAllRows=[];
@@ -741,6 +743,8 @@ async function cargarDatos(){
 
     const paramRows=Array.isArray(paramData)?paramData:(paramData.rows||[]);
     montoInicialTC=Array.isArray(paramData)?0:(paramData.montoInicialTC||0);
+    montoInicialTCB1=Array.isArray(paramData)?0:(paramData.montoInicialTCB1||0);
+    montoInicialTCB2=Array.isArray(paramData)?0:(paramData.montoInicialTCB2||0);
 
     subcats=paramRows.slice(1).filter(r=>r&&r[0]).map(r=>({sub:r[0],cat:r[1]||'',ie:r[2]||'E',modo:r[3]||'',estado:r[4]||'',frecuencia:r[5]||''}));
     presupuestoAllRows=pptoRows.slice(1).filter(r=>r&&r[0]);
@@ -2876,6 +2880,49 @@ function renderHomeGrafico(){
   }
 }
 
+function abrirDetalleTarjeta() {
+  const allGastos = Object.values(detalleData).flat()
+  const gastosAbsTC = Math.abs(
+    allGastos.filter(g => g.banco === 'Tarjeta Crédito').reduce((s, g) => s + g.montoValido, 0)
+  )
+  const pagosTC = Math.abs(
+    allGastos.filter(g => g.sub === 'TC - Pago Nueva Tarjeta').reduce((s, g) => s + g.montoValido, 0)
+  )
+  const deudaCuotas = cuotasData.filter(c => c.cuotasRestantes > 0).reduce((s, c) => s + c.montoPendiente, 0)
+  const saldoTC = montoInicialTCB1 - gastosAbsTC + pagosTC - deudaCuotas + montoInicialTCB2
+
+  const row = (label, valor, color) =>
+    `<div style="font-size:12px;color:#888;display:flex;justify-content:space-between;padding:4px 0;">
+      <span>${label}</span><span style="color:${color||'#111'};">${valor}</span>
+    </div>`
+
+  document.getElementById('tc-detalle-content').innerHTML = `
+    <div style="background:#f5f5f5;border-radius:10px;padding:14px;margin-bottom:10px;">
+      <div style="font-size:10px;font-weight:500;color:#888;letter-spacing:0.05em;margin-bottom:6px;">MONTO TOTAL</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+        <span style="font-size:13px;color:#888;">Límite de crédito</span>
+        <span style="font-size:22px;font-weight:500;color:#111;">${fmt(montoInicialTCB1)}</span>
+      </div>
+    </div>
+    <div style="border:0.5px solid #e8e8e8;border-radius:10px;padding:10px 12px;margin-bottom:10px;">
+      <div style="font-size:10px;font-weight:500;color:#888;letter-spacing:0.04em;margin-bottom:6px;">CÁLCULO DEL SALDO</div>
+      ${row('Límite de crédito', fmt(montoInicialTCB1))}
+      ${row('— Gasto histórico', '− '+fmt(gastosAbsTC), '#c62828')}
+      ${row('+ Pagos históricos', '+ '+fmt(pagosTC), '#2e7d32')}
+      ${row('— Cuotas pendientes TC', '− '+fmt(deudaCuotas), '#c62828')}
+      ${row('+ Ajuste para cuadrar', '+ '+fmt(montoInicialTCB2), '#f57f17')}
+      <div style="height:0.5px;background:#e0e0e0;margin:8px 0;"></div>
+      <div style="font-size:13px;display:flex;justify-content:space-between;align-items:baseline;font-weight:500;">
+        <span style="color:#888;">Saldo disponible real</span>
+        <span style="font-size:20px;color:#111;">${fmt(Math.abs(saldoTC))}</span>
+      </div>
+    </div>
+  `
+  document.getElementById('ov-tc-detalle').classList.add('open')
+  bloquearScrollFondo()
+}
+window.abrirDetalleTarjeta = abrirDetalleTarjeta
+
 // ── VALIDACIÓN PAGOS ─────────────────────────────────────
 
 function getValMedioClass(modo){
@@ -4252,6 +4299,9 @@ document.getElementById('ov-cambio-fecha').addEventListener('click',e=>{
 });
 document.getElementById('ov-duplicado-mensual').addEventListener('click',e=>{
   if(e.target===document.getElementById('ov-duplicado-mensual'))cerrar('ov-duplicado-mensual');
+});
+document.getElementById('ov-tc-detalle').addEventListener('click', e => {
+  if (e.target === document.getElementById('ov-tc-detalle')) cerrar('ov-tc-detalle');
 });
 
 const btnEyeInit=document.getElementById('btn-eye-all');
