@@ -99,6 +99,9 @@ window.toggleSeleccionTodos=toggleSeleccionTodos;
 window.abrirModalCambioFecha=abrirModalCambioFecha;
 window.confirmarCambioFecha=confirmarCambioFecha;
 window.actualizarAvisoCambioFecha=actualizarAvisoCambioFecha;
+window.abrirModalCambioSubcat=abrirModalCambioSubcat;
+window.filtrarSubcatsCambio=filtrarSubcatsCambio;
+window.confirmarCambioSubcat=confirmarCambioSubcat;
 
 window._eyeHidden = {santander: false, falabella: false, tc: false};
 window._eyeAllHidden = false;
@@ -611,7 +614,9 @@ let adminEditandoCat=null;
 let adminCatParaAgregar=null;
 let adminFilter='todas';
 let totalFilasGastos=0;
-let dashMes=3,dashAnio=2026,pptoPanelMes=3,pptoPanelAnio=2026;
+const _hoyInit=new Date();
+let dashMes=_hoyInit.getMonth(),dashAnio=_hoyInit.getFullYear();
+let pptoPanelMes=_hoyInit.getMonth(),pptoPanelAnio=_hoyInit.getFullYear();
 const _hoyRango=new Date(),_mesActualRango=_hoyRango.getMonth(),_anioActualRango=_hoyRango.getFullYear();
 let rangoDesde={mes:_mesActualRango===0?11:_mesActualRango-1,anio:_mesActualRango===0?_anioActualRango-1:_anioActualRango};
 let rangoHasta={mes:_mesActualRango===11?0:_mesActualRango+1,anio:_mesActualRango===11?_anioActualRango+1:_anioActualRango};
@@ -621,7 +626,7 @@ let duplicadoPendiente=null;
 let _skipDuplicadoCheck=false;
 let modoSeleccion=false;
 let gastosSeleccionados=new Set();
-let detFiltros={tipo:'todos',cats:[],banco:'todos',orden:'reciente'};
+let detFiltros={tipo:'todos',cats:[],catsExcluidas:[],banco:'todos',orden:'reciente'};
 let dashSortAsc=false;
 let pptoSortAsc=false;
 let catPptoPendiente=null;
@@ -629,7 +634,8 @@ let catAlcancePendiente=null;
 const EXCLUDED_CATS=['Ahorro en Cuenta Vista','Pago Tarjeta Crédito Limited Visa'];
 
 
-let valMes=3,valAnio=2026;
+const _hoyVal=new Date();
+let valMes=_hoyVal.getMonth(),valAnio=_hoyVal.getFullYear();
 let valFiltroEstado='todos';
 let valFiltroCategoria='todos';
 let valFiltroMedio='todos';
@@ -1057,6 +1063,7 @@ function renderDetalle(){
   else if(detFiltros.tipo==='ingresos') fil=fil.filter(g=>g.ie==='I');
   else if(detFiltros.tipo==='devolucion') fil=fil.filter(g=>g.dev);
   if(detFiltros.cats.length>0) fil=fil.filter(g=>detFiltros.cats.includes(g.cat));
+  if(detFiltros.catsExcluidas.length>0) fil=fil.filter(g=>!detFiltros.catsExcluidas.includes(g.cat));
   if(detFiltros.banco!=='todos'){
     const bMap={santander:'Santander',falabella:'Falabella',tc:'Tarjeta Crédito'};
     fil=fil.filter(g=>g.banco===bMap[detFiltros.banco]);
@@ -1066,8 +1073,6 @@ function renderDetalle(){
   else if(orden==='antiguo') fil=[...fil].sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.id-b.id);
   else if(orden==='mayor') fil=[...fil].sort((a,b)=>b.monto-a.monto);
   else if(orden==='menor') fil=[...fil].sort((a,b)=>a.monto-b.monto);
-  const pill=document.getElementById('det-orden-pill');
-  if(pill){const lbls={reciente:'Reciente',antiguo:'Antiguo',mayor:'Mayor $',menor:'Menor $'};pill.textContent=lbls[orden]||'Reciente';}
   const ingresos=fil.filter(g=>g.ie==='I').reduce((s,g)=>s+g.monto,0);
   const egresos=fil.filter(g=>g.ie==='E').reduce((s,g)=>s+g.monto,0);
   const egresoReal=fil.filter(g=>g.ie==='E'&&!EXCLUDED_CATS.includes(g.cat)).reduce((s,g)=>s+g.monto,0);
@@ -1103,31 +1108,76 @@ function renderDetalle(){
   }).join('');
 }
 
-function renderDetFilterPanel(todos){
-  const panel=document.getElementById('det-filter-panel');
-  if(!panel||panel.style.display==='none')return;
-  const cats=[...new Set(todos.map(g=>g.cat).filter(Boolean))].sort();
-  const chip=(val,activo,label,fn)=>`<button onclick="${fn}" style="padding:5px 12px;border-radius:16px;font-size:12px;border:0.5px solid ${activo?'#1a73e8':'#e0e0e0'};background:${activo?'#e8f0fe':'#fff'};color:${activo?'#1a73e8':'#555'};cursor:pointer;font-family:inherit;">${label}</button>`;
-  const seccion=(titulo,chips)=>`<div style="margin-bottom:10px;"><div style="font-size:10px;color:#888;font-weight:500;letter-spacing:0.06em;margin-bottom:6px;">${titulo}</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${chips}</div></div>`;
-  panel.innerHTML=
+function renderDetFilterPanel(todos) {
+  const panel = document.getElementById('det-filter-panel')
+  if (!panel || panel.style.display === 'none') return
+  const cats = [...new Set(todos.map(g => g.cat).filter(Boolean))].sort()
+
+  const chipTipo = (val, activo, label, fn) =>
+    `<button onclick="${fn}" style="padding:5px 12px;border-radius:16px;font-size:12px;border:0.5px solid ${activo ? '#1a73e8' : '#e0e0e0'};background:${activo ? '#e8f0fe' : '#fff'};color:${activo ? '#1a73e8' : '#555'};cursor:pointer;font-family:inherit;">${label}</button>`
+
+  const chipOrden = (val, label) => {
+    const activo = detFiltros.orden === val
+    return `<button onclick="setDetFiltro('orden','${val}')" style="padding:5px 12px;border-radius:16px;font-size:12px;border:0.5px solid ${activo ? '#1a73e8' : '#e0e0e0'};background:${activo ? '#e8f0fe' : '#fff'};color:${activo ? '#1a73e8' : '#555'};cursor:pointer;font-family:inherit;">${label}</button>`
+  }
+
+  const chipCat = (cat) => {
+    const cs = cat.replace(/'/g, "\\'")
+    const incluida = detFiltros.cats.includes(cat)
+    const excluida = detFiltros.catsExcluidas.includes(cat)
+    let bg = '#fff', border = '#e0e0e0', color = '#555'
+    if (incluida) { bg = '#e8f5e9'; border = '#2e7d32'; color = '#2e7d32' }
+    if (excluida) { bg = '#fce4ec'; border = '#c62828'; color = '#c62828' }
+    return `<button onclick="toggleDetCat('${cs}')" style="padding:5px 12px;border-radius:16px;font-size:12px;border:0.5px solid ${border};background:${bg};color:${color};cursor:pointer;font-family:inherit;">${cat}</button>`
+  }
+
+  const seccion = (titulo, chips) =>
+    `<div style="margin-bottom:10px;"><div style="font-size:10px;color:#888;font-weight:500;letter-spacing:0.06em;margin-bottom:6px;">${titulo}</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${chips}</div></div>`
+
+  panel.innerHTML =
+    seccion('ORDENAR',
+      [
+        chipOrden('reciente', 'Reciente'),
+        chipOrden('antiguo', 'Antiguo'),
+        chipOrden('mayor', 'Mayor monto'),
+        chipOrden('menor', 'Menor monto'),
+      ].join('')
+    ) +
     seccion('TIPO',
-      ['todos','egresos','ingresos','devolucion'].map(t=>chip(t,detFiltros.tipo===t,{todos:'Todos',egresos:'Egresos',ingresos:'Ingresos',devolucion:'Devolución'}[t],`setDetFiltro('tipo','${t}')`)).join('')
-    )+
-    seccion('CATEGORÍA',
-      cats.map(c=>{const cs=c.replace(/'/g,"\\'");return chip(c,detFiltros.cats.includes(c),c,`toggleDetCat('${cs}')`)}).join('')
-    )+
+      ['todos', 'egresos', 'ingresos', 'devolucion'].map(t =>
+        chipTipo(t, detFiltros.tipo === t, { todos: 'Todos', egresos: 'Egresos', ingresos: 'Ingresos', devolucion: 'Devolución' }[t], `setDetFiltro('tipo','${t}')`)
+      ).join('')
+    ) +
+    seccion('CATEGORÍA', cats.map(c => chipCat(c)).join('')) +
     seccion('BANCO',
-      ['todos','santander','falabella','tc'].map(b=>chip(b,detFiltros.banco===b,{todos:'Todos',santander:'Santander',falabella:'Falabella',tc:'Tarjeta Crédito'}[b],`setDetFiltro('banco','${b}')`)).join('')
-    )+
+      ['todos', 'santander', 'falabella', 'tc'].map(b =>
+        chipTipo(b, detFiltros.banco === b, { todos: 'Todos', santander: 'Santander', falabella: 'Falabella', tc: 'Tarjeta Crédito' }[b], `setDetFiltro('banco','${b}')`)
+      ).join('')
+    ) +
     `<div style="display:flex;gap:8px;margin-top:2px;">
       <button onclick="limpiarDetFiltros()" style="flex:1;padding:10px;background:#f5f5f5;color:#666;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;">Limpiar filtros</button>
       <button onclick="aplicarDetFiltros()" style="flex:2;padding:10px;background:#111;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;">Aplicar filtros</button>
-    </div>`;
+    </div>`
 }
 function setDetFiltro(key,val){detFiltros[key]=val;renderDetFilterPanel(getTodosRango());}
-function toggleDetCat(cat){const idx=detFiltros.cats.indexOf(cat);if(idx>=0)detFiltros.cats.splice(idx,1);else detFiltros.cats.push(cat);renderDetFilterPanel(getTodosRango());}
+function toggleDetCat(cat) {
+  const incluida = detFiltros.cats.includes(cat)
+  const excluida = detFiltros.catsExcluidas.includes(cat)
+  if (!incluida && !excluida) {
+    detFiltros.cats.push(cat)
+  } else if (incluida) {
+    detFiltros.cats = detFiltros.cats.filter(c => c !== cat)
+    detFiltros.catsExcluidas.push(cat)
+  } else {
+    detFiltros.catsExcluidas = detFiltros.catsExcluidas.filter(c => c !== cat)
+  }
+  renderDetFilterPanel(getTodosRango())
+}
 function aplicarDetFiltros(){document.getElementById('det-filter-panel').style.display='none';renderDetalle();}
-function limpiarDetFiltros(){detFiltros={tipo:'todos',cats:[],banco:'todos',orden:detFiltros.orden};renderDetFilterPanel(getTodosRango());}
+function limpiarDetFiltros() {
+  detFiltros = { tipo: 'todos', cats: [], catsExcluidas: [], banco: 'todos', orden: detFiltros.orden }
+  renderDetFilterPanel(getTodosRango())
+}
 
 function toggleModoSeleccion(){
   modoSeleccion=!modoSeleccion;
@@ -1179,6 +1229,8 @@ function actualizarBarraSeleccion(){
   if(label)label.textContent=count===0?'0 seleccionados':count===1?'1 seleccionado':`${count} seleccionados`;
   const btnCambiar=document.getElementById('btn-cambiar-fecha');
   if(btnCambiar)btnCambiar.style.opacity=count>0?'1':'0.4';
+  const btnCambiarSubcat=document.getElementById('btn-cambiar-subcat');
+  if(btnCambiarSubcat)btnCambiarSubcat.style.opacity=count>0?'1':'0.4';
   const checkAll=document.getElementById('check-all-btn');
   if(checkAll){
     const allChecked=count===total&&total>0;
@@ -1251,6 +1303,85 @@ async function confirmarCambioFecha(){
   }
 }
 
+function _buildSubcatsCambioHtml(q) {
+  const query = (q || '').toLowerCase().trim()
+  const grupos = {}
+  subcats.filter(s => s.estado !== 'Oculto').forEach(s => {
+    const label = s.sub.includes(' - ') ? s.sub.split(' - ').slice(1).join(' - ') : s.sub
+    if (query && !label.toLowerCase().includes(query) && !s.cat.toLowerCase().includes(query)) return
+    if (!grupos[s.cat]) grupos[s.cat] = []
+    grupos[s.cat].push(s)
+  })
+  let html = ''
+  Object.entries(grupos).forEach(([cat, subs]) => {
+    if (!query) html += `<div style="font-size:10px;font-weight:500;color:#aaa;letter-spacing:.05em;padding:8px 4px 4px;">${cat.toUpperCase()}</div>`
+    subs.forEach(s => {
+      const label = s.sub.includes(' - ') ? s.sub.split(' - ').slice(1).join(' - ') : s.sub
+      const color = catColores[s.cat] || '#999'
+      const subSafe = s.sub.replace(/'/g, "\\'")
+      html += `<div onclick="confirmarCambioSubcat('${subSafe}')"
+        style="display:flex;align-items:center;gap:9px;padding:9px 6px;border-radius:7px;cursor:pointer;border-bottom:0.5px solid #f5f5f5;">
+        <div style="width:9px;height:9px;border-radius:50%;background:${color};flex-shrink:0;"></div>
+        <span style="font-size:13px;color:#111;flex:1;">${label}${query ? `<span style="color:#aaa;font-size:11px;"> · ${cat}</span>` : ''}</span>
+      </div>`
+    })
+  })
+  if (!html) html = `<div style="padding:16px;text-align:center;font-size:13px;color:#aaa;">Sin resultados</div>`
+  return html
+}
+
+function abrirModalCambioSubcat() {
+  if (gastosSeleccionados.size === 0) return
+  const todosGastos = getTodosRango()
+  const seleccionados = todosGastos.filter(g => gastosSeleccionados.has(g.rowIndex))
+  document.getElementById('cambio-subcat-sub').textContent =
+    `${seleccionados.length} gasto${seleccionados.length !== 1 ? 's' : ''} seleccionado${seleccionados.length !== 1 ? 's' : ''}`
+  document.getElementById('input-cambio-subcat').value = ''
+  document.getElementById('cambio-subcat-options').innerHTML = _buildSubcatsCambioHtml('')
+  document.getElementById('ov-cambio-subcat').classList.add('open')
+  bloquearScrollFondo()
+}
+
+function filtrarSubcatsCambio(q) {
+  document.getElementById('cambio-subcat-options').innerHTML = _buildSubcatsCambioHtml(q)
+}
+
+async function confirmarCambioSubcat(newSub) {
+  cerrar('ov-cambio-subcat')
+  const todosGastos = getTodosRango()
+  const seleccionados = todosGastos.filter(g => gastosSeleccionados.has(g.rowIndex))
+  if (!seleccionados.length) return
+  mostrarLoading('Actualizando subcategoría...')
+  try {
+    for (const g of seleccionados) {
+      const N = g.rowIndex
+      const fB = `=IF(A${N}<>"";CONCATENATE(IF(MONTH(A${N})<10;CONCATENATE("0";MONTH(A${N}));MONTH(A${N}));"-";YEAR(A${N}));"")`
+      const fD = `=IFERROR(VLOOKUP(C${N};'Parámetros'!A:B;2;FALSE);"")`
+      const fE = `=IF(G${N}<>"X";IFERROR(VLOOKUP(C${N};'Parámetros'!A:C;3;FALSE);"");IF(IFERROR(VLOOKUP(C${N};'Parámetros'!A:C;3;FALSE);"")="E";"I";"E"))`
+      const fJ = `=IF(I${N}<>"";IF(E${N}="I";IF(I${N}>0;I${N};I${N}*-1);IF(E${N}="E";IF(I${N}<0;I${N};I${N}*-1)));0)`
+      const fK = `=SUMIFS(Presupuesto!D:D;Presupuesto!A:A;B${N};Presupuesto!B:B;C${N})`
+      const dateSerial = Math.round(new Date(g.fecha).getTime() / 86400000) + 25569
+      const row = [dateSerial, fB, newSub, fD, fE, g.banco, g.dev ? 'X' : '', g.desc, g.monto, fJ, fK]
+      const res = await fetch('/api/gastos', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rowIndex: g.rowIndex, row })
+      })
+      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'Error ' + res.status) }
+    }
+    const label = newSub.includes(' - ') ? newSub.split(' - ').slice(1).join(' - ') : newSub
+    const count = seleccionados.length
+    mostrarToast(`${count} gasto${count !== 1 ? 's' : ''} movido${count !== 1 ? 's' : ''} a "${label}" ✓`)
+    toggleModoSeleccion()
+    await cargarDatos()
+    renderDetalle()
+  } catch(e) {
+    mostrarToast('Error al actualizar: ' + e.message)
+  } finally {
+    ocultarLoading()
+  }
+}
+
 function _setDistribuirIntlBtn(){
   const btnDistIntl=document.getElementById('btn-distribuir-intl');
   if(btnDistIntl){
@@ -1283,11 +1414,6 @@ function abrirGastoById(id){
   bloquearScrollFondo();
 }
 document.getElementById('buscador').addEventListener('input',renderDetalle);
-document.getElementById('det-orden-pill').addEventListener('click',()=>{
-  const ciclo={reciente:'antiguo',antiguo:'mayor',mayor:'menor',menor:'reciente'};
-  detFiltros.orden=ciclo[detFiltros.orden]||'reciente';
-  renderDetalle();
-});
 document.getElementById('det-filtro-btn').addEventListener('click',()=>{
   const p=document.getElementById('det-filter-panel');
   const open=p.style.display==='none';
@@ -2021,7 +2147,8 @@ async function guardarEditSubcat(){
   mostrarLoading('Guardando cambios...');
   try{
     const body={rows};
-    if(newSub!==oldSub)body.rename={oldSub,newSub};
+    if(newSub!==oldSub)body.rename={oldSub,newSub,newCat:nuevaCat};
+    else if(nuevaCat!==adminEditandoSubcat.cat)body.rename={oldSub,newSub:oldSub,newCat:nuevaCat};
     const res=await fetch('/api/parametros',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Error '+res.status);}
     mostrarToast(newSub!==oldSub?'Subcategoría y gastos actualizados ✓':'Cambios guardados ✓');
@@ -2199,7 +2326,7 @@ async function guardarRenombrarCat(){
   cerrarAdminModal('ov-admin-rename');
   mostrarLoading('Guardando...');
   try{
-    const res=await fetch('/api/parametros',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({rows})});
+    const res=await fetch('/api/parametros',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({rows,renamecat:{oldCat,newCat:nuevaCat}})});
     if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Error '+res.status);}
     mostrarToast(`Categoría renombrada a "${nuevaCat}" ✓`);
     adminEditandoCat=null;
@@ -2525,6 +2652,9 @@ function renderHome(){
   // ── KPI CUENTAS ──────────────────────────────────
   const allGastos=Object.values(detalleData).flat();
   const sant=allGastos.filter(g=>g.banco==='Santander').reduce((s,g)=>s+g.montoValido,0);
+  const ahorros=allGastos.filter(g=>g.cat==='Ahorro en Cuenta Vista').reduce((s,g)=>s+g.montoValido,0);
+  const traslados=allGastos.filter(g=>g.sub==='Banco - Ingreso a Falabella desde Ahorros').reduce((s,g)=>s+g.montoValido,0);
+  const saldoAhorros=ahorros+traslados;
   const santEl=document.getElementById('kpi-sant');
   if(santEl){
     santEl.querySelector('.kpi-valor').innerHTML=window._eyeHidden.santander?'••••••':fmt(sant);
@@ -2548,6 +2678,10 @@ function renderHome(){
   const falaEl=document.getElementById('kpi-fala');
   if(falaEl){
     falaEl.querySelector('.kpi-valor').innerHTML=window._eyeHidden.falabella?'••••••':fmt(fala);
+  }
+  const ahorrosEl=document.getElementById('kpi-ahorros-val');
+  if(ahorrosEl){
+    ahorrosEl.innerHTML=window._eyeHidden.santander?'••••••':fmt(saldoAhorros);
   }
 
   // ── KPI ÚLTIMO MES ACTIVO FALABELLA ──────────────
@@ -2599,15 +2733,16 @@ function renderHome(){
     {id:'cat-kpi-mall',cat:'Mall'},
     {id:'cat-kpi-comer',cat:'Salidas a Comer'}
   ];
-  const mesActualKey=keyMesAnio(dashMes,dashAnio);
-  const prev1=prevMesAnio(dashMes,dashAnio,1);
-  const prev2=prevMesAnio(dashMes,dashAnio,2);
-  const prev3=prevMesAnio(dashMes,dashAnio,3);
+  const hoyHome=new Date();
+  const mesActualKey=keyMesAnio(hoyHome.getMonth(),hoyHome.getFullYear());
+  const prev1=prevMesAnio(hoyHome.getMonth(),hoyHome.getFullYear(),1);
+  const prev2=prevMesAnio(hoyHome.getMonth(),hoyHome.getFullYear(),2);
+  const prev3=prevMesAnio(hoyHome.getMonth(),hoyHome.getFullYear(),3);
   const prevKeys=[keyMesAnio(prev3.mes,prev3.anio),keyMesAnio(prev2.mes,prev2.anio),keyMesAnio(prev1.mes,prev1.anio)];
 
   const periodoEl=document.getElementById('home-cat-periodo');
   if(periodoEl){
-    const mActual=mesesC[dashMes]+' '+dashAnio;
+    const mActual=mesesC[hoyHome.getMonth()]+' '+hoyHome.getFullYear();
     const m1=mesesC[prev3.mes];
     const m3=mesesC[prev1.mes];
     periodoEl.textContent=mActual+' vs prom. '+m1+'–'+m3;
@@ -2799,9 +2934,13 @@ function renderHomeGrafico(){
   }
   canvas.style.visibility='visible';
 
+  const hoyGrafico=new Date();
+  const mesHoyG=hoyGrafico.getMonth();
+  const anioHoyG=hoyGrafico.getFullYear();
+
   const puntos=[];
-  for(let i=11;i>=0;i--){
-    const{mes,anio}=prevMesAnio(dashMes,dashAnio,i);
+  for(let i=12;i>=0;i--){
+    const{mes,anio}=prevMesAnio(mesHoyG,anioHoyG,i);
     const key=keyMesAnio(mes,anio);
     const gastos=detalleData[key]||[];
     let gasto=0;
@@ -2828,7 +2967,7 @@ function renderHomeGrafico(){
       }
       ppto+=parseMonto(r[3])||0;
     });
-    puntos.push({mes,anio,gasto,ppto,label:mesesC[mes]});
+    puntos.push({mes,anio,gasto,ppto,label:mesesC[mes]+' '+String(anio).slice(2)});
   }
 
   const promedio=Math.round(puntos.reduce((s,p)=>s+p.gasto,0)/puntos.length);
@@ -2863,7 +3002,7 @@ function renderHomeGrafico(){
         },
         {
           label:'Promedio 12m',
-          data:Array(12).fill(promedio),
+          data:Array(puntos.length).fill(promedio),
           borderColor:'#2e7d32',
           borderDash:[3,3],
           borderWidth:1.5,
@@ -3913,6 +4052,7 @@ let hcuadFiltroEstado = 'todos';
 let hcuadFiltroBanco = 'todos';
 let hcuadFiltroUsuario = 'todos';
 let hcuadFiltrosPanelAbierto = false;
+let hcuadOrden = 'desc';
 
 async function cargarHistorialCuad() {
   mostrarLoading('Cargando historial...');
@@ -3970,6 +4110,7 @@ function limpiarHcuadFiltros() {
   hcuadFiltroEstado = 'todos';
   hcuadFiltroBanco = 'todos';
   hcuadFiltroUsuario = 'todos';
+  hcuadOrden = 'desc';
   renderHistorialCuad();
 }
 
@@ -3977,6 +4118,7 @@ function setHcuadFiltro(tipo, val) {
   if (tipo === 'estado') hcuadFiltroEstado = val;
   if (tipo === 'banco') hcuadFiltroBanco = val;
   if (tipo === 'usuario') hcuadFiltroUsuario = val;
+  if (tipo === 'orden') hcuadOrden = val;
   renderHistorialCuad();
 }
 
@@ -3989,6 +4131,11 @@ function renderHistorialCuad() {
   }
   if (hcuadFiltroBanco !== 'todos') lista = lista.filter(r => r.banco === hcuadFiltroBanco);
   if (hcuadFiltroUsuario !== 'todos') lista = lista.filter(r => nombreUsuario(r.usuario) === hcuadFiltroUsuario);
+  lista = [...lista].sort((a, b) =>
+    hcuadOrden === 'desc'
+      ? b.fecha.localeCompare(a.fecha)
+      : a.fecha.localeCompare(b.fecha)
+  );
 
   const total = hcuadData.length;
   const conDif = hcuadData.filter(r => r.diferencia !== 0).length;
@@ -4019,6 +4166,10 @@ function renderHistorialCuad() {
       </div>`;
   }
 
+  const ordenOpts = [
+    { val: 'desc', label: 'Más reciente' },
+    { val: 'asc', label: 'Más antigua' },
+  ];
   const estadoOpts = [
     {val:'todos',label:'Todos'},
     {val:'ok',label:'OK'},
@@ -4028,6 +4179,13 @@ function renderHistorialCuad() {
   const bancos = ['todos', ...new Set(hcuadData.map(r => r.banco))];
   const usuarios = ['todos', ...new Set(hcuadData.map(r => nombreUsuario(r.usuario)))];
 
+  const chipsOrden = document.getElementById('hcuad-chips-orden');
+  if (chipsOrden) {
+    chipsOrden.innerHTML = ordenOpts.map(o =>
+      `<button class="hcuad-chip ${hcuadOrden === o.val ? 'active' : ''}"
+        onclick="setHcuadFiltro('orden','${o.val}')">${o.label}</button>`
+    ).join('');
+  }
   const chipsEstado = document.getElementById('hcuad-chips-estado');
   if (chipsEstado) {
     chipsEstado.innerHTML = estadoOpts.map(o =>
@@ -4330,6 +4488,9 @@ document.getElementById('ov-cuadratura-ajuste').addEventListener('click', e => {
 });
 document.getElementById('ov-cambio-fecha').addEventListener('click',e=>{
   if(e.target===document.getElementById('ov-cambio-fecha'))cerrar('ov-cambio-fecha');
+});
+document.getElementById('ov-cambio-subcat').addEventListener('click', e => {
+  if (e.target === document.getElementById('ov-cambio-subcat')) cerrar('ov-cambio-subcat');
 });
 document.getElementById('ov-duplicado-mensual').addEventListener('click',e=>{
   if(e.target===document.getElementById('ov-duplicado-mensual'))cerrar('ov-duplicado-mensual');

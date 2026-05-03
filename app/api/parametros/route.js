@@ -1,7 +1,8 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../auth/[...nextauth]/route'
 import { getParametros, updateParametros, renameSubcatEnDetalle,
-  moverGastosSubcat, getMontoInicialTC } from '@/lib/sheetsService'
+  moverGastosSubcat, getMontoInicialTC, renameCatEnPresupuesto,
+  renameSubcatEnPresupuesto } from '@/lib/sheetsService'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -27,6 +28,16 @@ export async function PUT(request) {
     }
     if (body.rename && body.rename.oldSub !== body.rename.newSub) {
       await renameSubcatEnDetalle(body.rename.oldSub, body.rename.newSub)
+    }
+    if (body.rename) {
+      await renameSubcatEnPresupuesto(
+        body.rename.oldSub,
+        body.rename.newSub || body.rename.oldSub,
+        body.rename.newCat || null
+      )
+    }
+    if (body.renamecat) {
+      await renameCatEnPresupuesto(body.renamecat.oldCat, body.renamecat.newCat)
     }
     if (body.rows) {
       await updateParametros(body.rows)

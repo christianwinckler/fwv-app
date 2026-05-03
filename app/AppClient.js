@@ -961,7 +961,6 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
             <span class="search-icon">🔍</span>
             <input class="search-input" id="buscador" placeholder="Buscar gasto..." />
           </div>
-          <button id="det-orden-pill" style="padding:6px 10px;border-radius:8px;font-size:12px;border:0.5px solid #1a73e8;background:#e8f0fe;color:#1a73e8;cursor:pointer;font-family:inherit;white-space:nowrap;">Reciente</button>
           <button id="det-filtro-btn" style="width:32px;height:32px;border:0.5px solid #e0e0e0;border-radius:8px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5 8h6M7 12h2" stroke="#666" stroke-width="1.5" stroke-linecap="round"/></svg>
           </button>
@@ -982,6 +981,10 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
           <button onclick="toggleModoSeleccion()"
             style="padding:5px 12px;border-radius:8px;font-size:12px;border:0.5px solid #aac4f0;background:#fff;color:#1a73e8;cursor:pointer;font-family:inherit;">
             Cancelar
+          </button>
+          <button id="btn-cambiar-subcat" onclick="abrirModalCambioSubcat()"
+            style="padding:5px 12px;border-radius:8px;font-size:12px;border:none;background:#e8f0fe;color:#1a73e8;cursor:pointer;font-family:inherit;font-weight:500;opacity:0.4;">
+            Cambiar subcat →
           </button>
           <button id="btn-cambiar-fecha" onclick="abrirModalCambioFecha()"
             style="padding:5px 12px;border-radius:8px;font-size:12px;border:none;background:#1a73e8;color:#fff;cursor:pointer;font-family:inherit;font-weight:500;opacity:0.4;">
@@ -1091,6 +1094,8 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
           <span id="hcuad-filtro-chev" style="font-size:11px;color:#bbb;transition:transform 0.2s;">▼</span>
         </button>
         <div id="hcuad-filtro-panel" style="display:none;background:#fff;border:0.5px solid #e0e0e0;border-top:none;border-radius:0 0 10px 10px;padding:12px;">
+          <div style="font-size:10px;color:#888;font-weight:500;letter-spacing:.05em;margin-bottom:6px;">ORDEN</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;" id="hcuad-chips-orden"></div>
           <div style="font-size:10px;color:#888;font-weight:500;letter-spacing:.05em;margin-bottom:6px;">ESTADO</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;" id="hcuad-chips-estado"></div>
           <div style="font-size:10px;color:#888;font-weight:500;letter-spacing:.05em;margin-bottom:6px;">BANCO</div>
@@ -1106,7 +1111,8 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
     <!-- HOME -->
     <div class="screen active" id="screen-home">
       <div class="section-label">CUENTAS CORRIENTES</div>
-      <div class="kpi-grid-2" style="padding-bottom:0;">
+      <div style="height:8px;"></div>
+      <div class="kpi-grid-2">
         <div class="kpi-card" id="kpi-sant" style="position:relative;">
           <div class="kpi-label">SANTANDER</div>
           <div class="kpi-valor" id="kpi-sant-val"><span class="skeleton skeleton-valor"></span></div>
@@ -1117,6 +1123,11 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
               <path d="M4.5 8.5l2.5 2.5 4.5-5" stroke="#2e7d32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
+        </div>
+        <div class="kpi-card" id="kpi-ahorros">
+          <div class="kpi-label">CUENTA VISTA</div>
+          <div class="kpi-valor" id="kpi-ahorros-val"><span class="skeleton skeleton-valor"></span></div>
+          <div class="kpi-badge" style="background:#e8f0fe;color:#1a73e8;">Ahorros</div>
         </div>
         <div class="kpi-card" id="kpi-fala" style="position:relative;">
           <div class="kpi-label">FALABELLA</div>
@@ -1129,17 +1140,14 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
             </svg>
           </button>
         </div>
-      </div>
-      <div style="height:8px;"></div>
-      <div class="kpi-card-falabella">
-        <div class="falabella-row">
-          <div class="falabella-compras">
-            <div class="falabella-compras-num" id="kpi-fala-compras"><span class="skeleton" style="height:28px;width:32px;display:inline-block;"></span></div>
-            <div class="falabella-compras-label">compras</div>
-          </div>
-          <div>
-            <div class="kpi-label">ÚLTIMO MES ACTIVO FALABELLA</div>
-            <div class="kpi-valor" id="kpi-fala-mes"><span class="skeleton skeleton-valor"></span></div>
+        <div class="kpi-card">
+          <div class="kpi-label">ÚLTIMO MES FALABELLA</div>
+          <div class="falabella-row" style="margin-top:4px;">
+            <div class="falabella-compras">
+              <div class="falabella-compras-num" id="kpi-fala-compras"><span class="skeleton" style="height:28px;width:32px;display:inline-block;"></span></div>
+              <div class="falabella-compras-label">compras</div>
+            </div>
+            <div class="kpi-valor" id="kpi-fala-mes" style="font-size:13px;"><span class="skeleton skeleton-valor"></span></div>
           </div>
         </div>
       </div>
@@ -1150,7 +1158,7 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
           <div class="kpi-valor" id="kpi-tc"><span class="skeleton skeleton-valor"></span></div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
             <div class="kpi-sub">Saldo disponible real</div>
-            <div class="kpi-badge badge-tc">Tarjeta Gold Limited</div>
+            <div class="kpi-badge badge-tc">Tarjeta WorldMember Limited</div>
           </div>
           <div style="position:absolute;top:0;right:0;display:flex;align-items:center;gap:6px;">
             <button onclick="abrirDetalleTarjeta()"
@@ -1800,6 +1808,24 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
   </div>
 </div>
 
+<div class="overlay" id="ov-cambio-subcat">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 4px;">
+      <div class="sheet-title" style="margin-bottom:0;">Cambiar subcategoría</div>
+      <button style="width:28px;height:28px;border-radius:50%;background:#f5f5f5;border:none;cursor:pointer;font-size:14px;color:#666;" onclick="cerrar('ov-cambio-subcat')">✕</button>
+    </div>
+    <div id="cambio-subcat-sub" style="font-size:13px;color:#888;margin-bottom:14px;"></div>
+    <div style="position:relative;margin-bottom:10px;">
+      <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:14px;color:#bbb;">🔍</span>
+      <input id="input-cambio-subcat" type="text" placeholder="Buscar subcategoría..."
+        style="width:100%;padding:9px 11px 9px 34px;border:0.5px solid #e0e0e0;border-radius:9px;font-size:14px;font-family:inherit;background:#f5f5f5;box-sizing:border-box;"
+        oninput="filtrarSubcatsCambio(this.value)" />
+    </div>
+    <div id="cambio-subcat-options" style="max-height:320px;overflow-y:auto;"></div>
+  </div>
+</div>
+
 <div class="overlay" id="ov-cambio-fecha">
   <div class="sheet">
     <div class="sheet-handle"></div>
@@ -1846,7 +1872,7 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
       <button style="width:28px;height:28px;border-radius:50%;background:#f5f5f5;border:none;cursor:pointer;font-size:14px;color:#666;" onclick="cerrar('ov-tc-detalle')">✕</button>
     </div>
     <div style="margin-bottom:14px;">
-      <span style="background:#fff8e1;color:#f57f17;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:500;">Tarjeta Gold Limited</span>
+      <span style="background:#fff8e1;color:#f57f17;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:500;">Tarjeta WorldMember Limited</span>
     </div>
     <div id="tc-detalle-content"></div>
   </div>

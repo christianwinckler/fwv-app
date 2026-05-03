@@ -36,7 +36,7 @@ export async function POST(request) {
       const N = detalle.length + 1
 
       const dateSerial = Math.round(new Date(fechaHoy).getTime() / 86400000) + 25569
-      const esDev = diferencia > 0
+      const esDev = diferencia < 0
 
       const fB = `=IF(A${N}<>"";CONCATENATE(IF(MONTH(A${N})<10;CONCATENATE("0";MONTH(A${N}));MONTH(A${N}));"-";YEAR(A${N}));"")`
       const fD = `=IFERROR(VLOOKUP(C${N};'Parámetros'!A:B;2;FALSE);"")`
