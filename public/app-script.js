@@ -37,7 +37,7 @@ window.aplicarAlcance=aplicarAlcance;
 window.togglePptoSort=togglePptoSort;
 window.abrirModalPpto=abrirModalPpto;
 window.setDetFiltro=setDetFiltro;
-window.toggleDetCat=toggleDetCat;
+window.toggleDetCat=function(){};
 window.aplicarDetFiltros=aplicarDetFiltros;
 window.limpiarDetFiltros=limpiarDetFiltros;
 window.renderHome=renderHome;
@@ -625,6 +625,7 @@ let adminFilter='todas';
 let totalFilasGastos=0;
 const _hoyInit=new Date();
 let dashMes=_hoyInit.getMonth(),dashAnio=_hoyInit.getFullYear();
+let resSelectorAnioTemp=dashAnio;
 let pptoPanelMes=_hoyInit.getMonth(),pptoPanelAnio=_hoyInit.getFullYear();
 const _hoyRango=new Date(),_mesActualRango=_hoyRango.getMonth(),_anioActualRango=_hoyRango.getFullYear();
 let rangoDesde={mes:_mesActualRango===0?11:_mesActualRango-1,anio:_mesActualRango===0?_anioActualRango-1:_anioActualRango};
@@ -635,7 +636,8 @@ let duplicadoPendiente=null;
 let _skipDuplicadoCheck=false;
 let modoSeleccion=false;
 let gastosSeleccionados=new Set();
-let detFiltros={tipo:'todos',cats:[],catsExcluidas:[],banco:'todos',orden:'reciente'};
+let detFiltros={tipo:'todos',cats:[],catsExcluidas:[],banco:'todos',orden:'reciente',cat:'todas',subcat:'todas'};
+let detMostrandoTodasCats=false;
 let dashSortAsc=false;
 let pptoSortAsc=false;
 let catPptoPendiente=null;
@@ -654,6 +656,9 @@ let ultimoGastoGuardado=null;
 
 let divParts=[];
 let divEditIdx=null;
+let calcPartIndex=null;
+let calcExpr='';
+let calcValor=0;
 
 function fmt(n){return '$'+Math.round(Math.abs(n)).toLocaleString('es-CL');}
 function getStatus(p){return p>=100?'over':p>=80?'warning':'ok';}
@@ -936,7 +941,7 @@ function abrirNuevoGasto(){
 // ── DASHBOARD ───────────────────────────────────────────
 function renderDashboard(){
   const key=`${String(dashMes+1).padStart(2,'0')}-${dashAnio}`;
-  document.getElementById('dash-mes').textContent=`${meses[dashMes]} ${dashAnio}`;
+  actualizarLabelMesResumen();
   const d=dashData[key]||{ingresos:0,presupuesto:0,categorias:[]};
   const totalE=d.categorias.reduce((s,c)=>s+c.monto,0);
   const bal=d.ingresos-totalE;
@@ -1116,8 +1121,81 @@ function guardarPptoDesdeCat(cat,catIdx,key){
   bloquearScrollFondo();
 }
 
-document.getElementById('dash-prev').addEventListener('click',()=>{dashMes--;if(dashMes<0){dashMes=11;dashAnio--;}renderDashboard();});
-document.getElementById('dash-next').addEventListener('click',()=>{dashMes++;if(dashMes>11){dashMes=0;dashAnio++;}renderDashboard();});
+function setupNavArrow(id, delta) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  const fresh = btn.cloneNode(true);
+  btn.parentNode.replaceChild(fresh, btn);
+  fresh.addEventListener('pointerdown', (e) => { e.preventDefault(); fresh.blur(); });
+  fresh.addEventListener('pointerup', (e) => {
+    e.preventDefault(); fresh.blur();
+    dashMes += delta;
+    if (dashMes < 0)  { dashMes = 11; dashAnio--; }
+    if (dashMes > 11) { dashMes = 0;  dashAnio++; }
+    actualizarLabelMesResumen();
+    renderDashboard();
+  });
+}
+setupNavArrow('dash-prev', -1);
+setupNavArrow('dash-next', +1);
+function actualizarLabelMesResumen(){
+  const mesesCompletos=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const label=document.getElementById('res-mes-label');
+  if(label) label.textContent=mesesCompletos[dashMes]+' '+dashAnio;
+}
+function renderMesesGrid(){
+  const mesesCortos=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const hoy=new Date();
+  const mesActual=hoy.getMonth();
+  const anioActual=hoy.getFullYear();
+  document.getElementById('res-sel-year').textContent=resSelectorAnioTemp;
+  document.getElementById('res-meses-grid').innerHTML=mesesCortos.map((m,i)=>{
+    const esSel=i===dashMes&&resSelectorAnioTemp===dashAnio;
+    const esActual=i===mesActual&&resSelectorAnioTemp===anioActual;
+    const cls=esSel?'res-mes-opt res-mes-sel':esActual?'res-mes-opt res-mes-actual':'res-mes-opt';
+    return `<button class="${cls}" onclick="seleccionarMesResumen(${i})">${m}</button>`;
+  }).join('');
+}
+function toggleMesSelectorResumen(){
+  const sel=document.getElementById('res-mes-selector');
+  const pill=document.getElementById('res-mes-pill');
+  const chevron=document.getElementById('res-mes-chevron');
+  const abierto=sel.style.display!=='none';
+  if(abierto){cerrarMesSelectorResumen();}
+  else{
+    resSelectorAnioTemp=dashAnio;
+    sel.style.display='block';
+    pill.classList.add('open');
+    chevron.textContent='▲';
+    renderMesesGrid();
+  }
+}
+function cerrarMesSelectorResumen(){
+  document.getElementById('res-mes-selector').style.display='none';
+  document.getElementById('res-mes-pill').classList.remove('open');
+  document.getElementById('res-mes-chevron').textContent='▼';
+}
+function resSelectorAnio(delta){
+  resSelectorAnioTemp+=delta;
+  renderMesesGrid();
+}
+function seleccionarMesResumen(mes){
+  dashMes=mes;
+  dashAnio=resSelectorAnioTemp;
+  cerrarMesSelectorResumen();
+  renderDashboard();
+}
+document.addEventListener('click',function(e){
+  const wrap=document.getElementById('res-mes-selector');
+  const pill=document.getElementById('res-mes-pill');
+  if(wrap&&wrap.style.display!=='none'){
+    if(!wrap.contains(e.target)&&!pill.contains(e.target))cerrarMesSelectorResumen();
+  }
+});
+window.toggleMesSelectorResumen=toggleMesSelectorResumen;
+window.cerrarMesSelectorResumen=cerrarMesSelectorResumen;
+window.resSelectorAnio=resSelectorAnio;
+window.seleccionarMesResumen=seleccionarMesResumen;
 document.getElementById('ov-cat').addEventListener('click',e=>{if(e.target===document.getElementById('ov-cat'))cerrar('ov-cat');});
 
 // ── DETALLE ─────────────────────────────────────────────
@@ -1132,7 +1210,9 @@ function getTodosRango(){
 }
 function actualizarRangoLabel(){
   const d=`${mesesC[rangoDesde.mes]} ${rangoDesde.anio}`,h=`${mesesC[rangoHasta.mes]} ${rangoHasta.anio}`;
-  document.getElementById('rango-label').textContent=d===h?d:`${d} — ${h}`;
+  const rl=document.getElementById('rango-label');if(rl)rl.textContent=d===h?d:`${d} — ${h}`;
+  const dF=`${meses[rangoDesde.mes]} ${rangoDesde.anio}`,hF=`${meses[rangoHasta.mes]} ${rangoHasta.anio}`;
+  const pl=document.getElementById('det-periodo-label');if(pl)pl.textContent=dF===hF?dF:`${dF} – ${hF}`;
 }
 function getDiaLabel(f){
   const hoy=new Date();hoy.setHours(0,0,0,0);
@@ -1146,18 +1226,19 @@ function renderDetalle(){
   actualizarRangoLabel();
   const todos=getTodosRango();
   renderDetFilterPanel(todos);
+  detUpdateFilterBtn();
+  detUpdateActiveBadges();
   const q=(document.getElementById('buscador')?.value||'').toLowerCase().trim();
   let fil=todos;
   if(q) fil=fil.filter(g=>g.desc.toLowerCase().includes(q)||g.cat.toLowerCase().includes(q)||g.sub.toLowerCase().includes(q));
   if(detFiltros.tipo==='egresos') fil=fil.filter(g=>g.ie==='E'&&!g.dev);
   else if(detFiltros.tipo==='ingresos') fil=fil.filter(g=>g.ie==='I');
   else if(detFiltros.tipo==='devolucion') fil=fil.filter(g=>g.dev);
+  if(detFiltros.cat!=='todas') fil=fil.filter(g=>g.cat===detFiltros.cat);
+  if(detFiltros.subcat!=='todas') fil=fil.filter(g=>g.sub===detFiltros.subcat);
   if(detFiltros.cats.length>0) fil=fil.filter(g=>detFiltros.cats.includes(g.cat));
   if(detFiltros.catsExcluidas.length>0) fil=fil.filter(g=>!detFiltros.catsExcluidas.includes(g.cat));
-  if(detFiltros.banco!=='todos'){
-    const bMap={santander:'Santander',falabella:'Falabella',tc:'Tarjeta Crédito'};
-    fil=fil.filter(g=>g.banco===bMap[detFiltros.banco]);
-  }
+  if(detFiltros.banco!=='todos') fil=fil.filter(g=>g.banco===detFiltros.banco);
   const orden=detFiltros.orden;
   if(orden==='reciente') fil=[...fil].sort((a,b)=>b.fecha.localeCompare(a.fecha)||b.id-a.id);
   else if(orden==='antiguo') fil=[...fil].sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.id-b.id);
@@ -1199,75 +1280,173 @@ function renderDetalle(){
 }
 
 function renderDetFilterPanel(todos) {
-  const panel = document.getElementById('det-filter-panel')
-  if (!panel || panel.style.display === 'none') return
-  const cats = [...new Set(todos.map(g => g.cat).filter(Boolean))].sort()
+  const panel = document.getElementById('det-filter-panel');
+  if (!panel || !panel.classList.contains('open')) return;
+  const anioActual = new Date().getFullYear();
+  const anios = Array.from({length: anioActual-2022}, (_,i)=>2023+i);
+  const bancos = [...new Set(todos.map(g=>g.banco).filter(Boolean))].sort();
+  const cats = [...new Set(todos.map(g=>g.cat).filter(Boolean))].sort();
+  const subcats = detFiltros.cat!=='todas'
+    ? [...new Set(todos.filter(g=>g.cat===detFiltros.cat).map(g=>g.sub).filter(Boolean))].sort()
+    : [];
+  const MAX_CATS = 5;
+  const catsVisibles = detMostrandoTodasCats ? cats : cats.slice(0, MAX_CATS);
 
-  const chipTipo = (val, activo, label, fn) =>
-    `<button onclick="${fn}" style="padding:5px 12px;border-radius:16px;font-size:12px;border:0.5px solid ${activo ? '#1a73e8' : '#e0e0e0'};background:${activo ? '#e8f0fe' : '#fff'};color:${activo ? '#1a73e8' : '#555'};cursor:pointer;font-family:inherit;">${label}</button>`
+  const chip = (active, label, onclick) =>
+    `<button class="det-chip${active?' active':''}" onclick="${onclick}">${label}</button>`;
 
-  const chipOrden = (val, label) => {
-    const activo = detFiltros.orden === val
-    return `<button onclick="setDetFiltro('orden','${val}')" style="padding:5px 12px;border-radius:16px;font-size:12px;border:0.5px solid ${activo ? '#1a73e8' : '#e0e0e0'};background:${activo ? '#e8f0fe' : '#fff'};color:${activo ? '#1a73e8' : '#555'};cursor:pointer;font-family:inherit;">${label}</button>`
-  }
+  const seccion = (label, chips) =>
+    `<span class="det-fs-label">${label}</span>
+     <div class="det-chip-row">${chips}</div>
+     <div class="det-filter-divider"></div>`;
 
-  const chipCat = (cat) => {
-    const cs = cat.replace(/'/g, "\\'")
-    const incluida = detFiltros.cats.includes(cat)
-    const excluida = detFiltros.catsExcluidas.includes(cat)
-    let bg = '#fff', border = '#e0e0e0', color = '#555'
-    if (incluida) { bg = '#e8f5e9'; border = '#2e7d32'; color = '#2e7d32' }
-    if (excluida) { bg = '#fce4ec'; border = '#c62828'; color = '#c62828' }
-    return `<button onclick="toggleDetCat('${cs}')" style="padding:5px 12px;border-radius:16px;font-size:12px;border:0.5px solid ${border};background:${bg};color:${color};cursor:pointer;font-family:inherit;">${cat}</button>`
-  }
+  const selMes = (id, val) =>
+    `<select class="sel-mes" id="${id}">
+       ${meses.map((m,i)=>`<option value="${i}"${val===i?' selected':''}>${m}</option>`).join('')}
+     </select>`;
 
-  const seccion = (titulo, chips) =>
-    `<div style="margin-bottom:10px;"><div style="font-size:10px;color:#888;font-weight:500;letter-spacing:0.06em;margin-bottom:6px;">${titulo}</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${chips}</div></div>`
+  const selAnio = (id, val) =>
+    `<select class="sel-anio" id="${id}">
+       ${anios.map(a=>`<option value="${a}"${val===a?' selected':''}>${a}</option>`).join('')}
+     </select>`;
 
   panel.innerHTML =
-    seccion('ORDENAR',
-      [
-        chipOrden('reciente', 'Reciente'),
-        chipOrden('antiguo', 'Antiguo'),
-        chipOrden('mayor', 'Mayor monto'),
-        chipOrden('menor', 'Menor monto'),
-      ].join('')
+    `<span class="det-fs-label">PERÍODO</span>
+     <div class="det-period-desde-hasta">
+       <div class="det-period-row-label">DESDE</div>
+       <div class="det-period-selects">
+         ${selMes('det-desde-mes', rangoDesde.mes)}
+         ${selAnio('det-desde-anio', rangoDesde.anio)}
+       </div>
+     </div>
+     <div class="det-period-desde-hasta">
+       <div class="det-period-row-label">HASTA</div>
+       <div class="det-period-selects">
+         ${selMes('det-hasta-mes', rangoHasta.mes)}
+         ${selAnio('det-hasta-anio', rangoHasta.anio)}
+       </div>
+     </div>
+     <div class="det-chip-row" style="margin-top:6px;">
+       ${chip(false,'Este mes',"detPresetRango('mes')")}
+       ${chip(false,'3 meses',"detPresetRango('3m')")}
+       ${chip(false,'6 meses',"detPresetRango('6m')")}
+       ${chip(false,'1 año',"detPresetRango('12m')")}
+     </div>
+     <div class="det-filter-divider"></div>` +
+    seccion('ORDENAR POR',
+      ['reciente','antiguo','mayor','menor'].map(v=>
+        chip(detFiltros.orden===v,{reciente:'Más reciente',antiguo:'Más antiguo',mayor:'Mayor monto',menor:'Menor monto'}[v],`setDetFiltro('orden','${v}')`)
+      ).join('')
     ) +
     seccion('TIPO',
-      ['todos', 'egresos', 'ingresos', 'devolucion'].map(t =>
-        chipTipo(t, detFiltros.tipo === t, { todos: 'Todos', egresos: 'Egresos', ingresos: 'Ingresos', devolucion: 'Devolución' }[t], `setDetFiltro('tipo','${t}')`)
+      ['todos','egresos','ingresos','devolucion'].map(v=>
+        chip(detFiltros.tipo===v,{todos:'Todos',egresos:'Egresos',ingresos:'Ingresos',devolucion:'Devolución'}[v],`setDetFiltro('tipo','${v}')`)
       ).join('')
     ) +
-    seccion('CATEGORÍA', cats.map(c => chipCat(c)).join('')) +
-    seccion('BANCO',
-      ['todos', 'santander', 'falabella', 'tc'].map(b =>
-        chipTipo(b, detFiltros.banco === b, { todos: 'Todos', santander: 'Santander', falabella: 'Falabella', tc: 'Tarjeta Crédito' }[b], `setDetFiltro('banco','${b}')`)
-      ).join('')
+    seccion('BANCO / MEDIO DE PAGO',
+      [chip(detFiltros.banco==='todos','Todos',"setDetFiltro('banco','todos')"),
+       ...bancos.map(b=>chip(detFiltros.banco===b,b,`setDetFiltro('banco','${b.replace(/'/g,"\\'")}')`))]
+      .join('')
     ) +
-    `<div style="display:flex;gap:8px;margin-top:2px;">
-      <button onclick="limpiarDetFiltros()" style="flex:1;padding:10px;background:#f5f5f5;color:#666;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;">Limpiar filtros</button>
-      <button onclick="aplicarDetFiltros()" style="flex:2;padding:10px;background:#111;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;">Aplicar filtros</button>
-    </div>`
+    `<span class="det-fs-label">CATEGORÍA</span>
+     <div class="det-chip-row">
+       ${chip(detFiltros.cat==='todas','Todas',"setDetFiltro('cat','todas')")}
+       ${catsVisibles.map(c=>chip(detFiltros.cat===c,c,`setDetFiltro('cat','${c.replace(/'/g,"\\'")}')`)  ).join('')}
+       ${!detMostrandoTodasCats&&cats.length>MAX_CATS
+         ?`<button class="det-chip" onclick="detToggleTodasCats()">+ ${cats.length-MAX_CATS} más</button>`:''}
+     </div>` +
+    (detFiltros.cat!=='todas'&&subcats.length>0
+      ? `<div class="det-filter-divider"></div>
+         <span class="det-fs-label">SUBCATEGORÍA</span>
+         <div class="det-chip-row">
+           ${chip(detFiltros.subcat==='todas','Todas',"setDetFiltro('subcat','todas')")}
+           ${subcats.map(s=>chip(detFiltros.subcat===s,s,`setDetFiltro('subcat','${s.replace(/'/g,"\\'")}')`)  ).join('')}
+         </div>`
+      : '') +
+    `<div class="det-filter-divider"></div>
+     <div class="det-panel-actions">
+       <button class="det-btn-clear" onclick="limpiarDetFiltros()">Limpiar</button>
+       <button class="det-btn-apply" onclick="aplicarDetFiltros()">Aplicar filtros</button>
+     </div>`;
+
+  ['det-desde-mes','det-desde-anio','det-hasta-mes','det-hasta-anio'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('change',detAplicarPeriodo);
+  });
 }
-function setDetFiltro(key,val){detFiltros[key]=val;renderDetFilterPanel(getTodosRango());}
-function toggleDetCat(cat) {
-  const incluida = detFiltros.cats.includes(cat)
-  const excluida = detFiltros.catsExcluidas.includes(cat)
-  if (!incluida && !excluida) {
-    detFiltros.cats.push(cat)
-  } else if (incluida) {
-    detFiltros.cats = detFiltros.cats.filter(c => c !== cat)
-    detFiltros.catsExcluidas.push(cat)
-  } else {
-    detFiltros.catsExcluidas = detFiltros.catsExcluidas.filter(c => c !== cat)
-  }
-  renderDetFilterPanel(getTodosRango())
+function setDetFiltro(key,val){
+  if(key==='cat') detFiltros.subcat='todas';
+  detFiltros[key]=val;
+  renderDetFilterPanel(getTodosRango());
 }
-function aplicarDetFiltros(){document.getElementById('det-filter-panel').style.display='none';renderDetalle();}
-function limpiarDetFiltros() {
-  detFiltros = { tipo: 'todos', cats: [], catsExcluidas: [], banco: 'todos', orden: detFiltros.orden }
-  renderDetFilterPanel(getTodosRango())
+window.setDetFiltro=setDetFiltro;
+function detToggleTodasCats(){detMostrandoTodasCats=!detMostrandoTodasCats;renderDetFilterPanel(getTodosRango());}
+window.detToggleTodasCats=detToggleTodasCats;
+function detPresetRango(tipo){
+  const hoy=new Date();
+  const mesHoy=hoy.getMonth(),anioHoy=hoy.getFullYear();
+  let desdeMes=mesHoy,desdeAnio=anioHoy;
+  if(tipo==='3m'){let m=mesHoy-2,a=anioHoy;if(m<0){m+=12;a--;}desdeMes=m;desdeAnio=a;}
+  else if(tipo==='6m'){let m=mesHoy-5,a=anioHoy;if(m<0){m+=12;a--;}desdeMes=m;desdeAnio=a;}
+  else if(tipo==='12m'){let m=mesHoy-11,a=anioHoy;if(m<0){m+=12;a--;}desdeMes=m;desdeAnio=a;}
+  rangoDesde={mes:desdeMes,anio:desdeAnio};
+  rangoHasta={mes:mesHoy,anio:anioHoy};
+  renderDetFilterPanel(getTodosRango());
+  renderDetalle();
 }
+window.detPresetRango=detPresetRango;
+function detAplicarPeriodo(){
+  const dm=document.getElementById('det-desde-mes');
+  const da=document.getElementById('det-desde-anio');
+  const hm=document.getElementById('det-hasta-mes');
+  const ha=document.getElementById('det-hasta-anio');
+  if(!dm||!hm)return;
+  rangoDesde={mes:parseInt(dm.value),anio:parseInt(da.value)};
+  rangoHasta={mes:parseInt(hm.value),anio:parseInt(ha.value)};
+  if(rangoDesde.anio>rangoHasta.anio||(rangoDesde.anio===rangoHasta.anio&&rangoDesde.mes>rangoHasta.mes))rangoHasta={...rangoDesde};
+  renderDetalle();
+}
+function detContarFiltrosActivos(){
+  let n=0;
+  if(detFiltros.orden!=='reciente')n++;
+  if(detFiltros.tipo!=='todos')n++;
+  if(detFiltros.banco!=='todos')n++;
+  if(detFiltros.cat!=='todas')n++;
+  if(detFiltros.subcat!=='todas')n++;
+  return n;
+}
+function detUpdateFilterBtn(){
+  const btn=document.getElementById('det-filtro-btn');
+  const lbl=document.getElementById('det-filtro-btn-label');
+  if(!btn||!lbl)return;
+  const n=detContarFiltrosActivos();
+  if(n>0){btn.classList.add('filtros-activos');lbl.textContent=`Filtros (${n})`;}
+  else{btn.classList.remove('filtros-activos');lbl.textContent='Filtros';}
+}
+function detUpdateActiveBadges(){
+  const c=document.getElementById('det-active-badges');
+  if(!c)return;
+  const badges=[];
+  if(detFiltros.tipo!=='todos')badges.push({todos:'Todos',egresos:'Egresos',ingresos:'Ingresos',devolucion:'Devolución'}[detFiltros.tipo]);
+  if(detFiltros.banco!=='todos')badges.push(detFiltros.banco);
+  if(detFiltros.cat!=='todas')badges.push(detFiltros.cat);
+  if(detFiltros.subcat!=='todas')badges.push(detFiltros.subcat);
+  c.innerHTML=badges.map(b=>`<span class="det-badge" style="background:color-mix(in srgb,var(--accent) 12%,var(--card));color:var(--accent);">${b}</span>`).join('');
+}
+function aplicarDetFiltros(){
+  const p=document.getElementById('det-filter-panel');
+  if(p)p.classList.remove('open');
+  renderDetalle();
+}
+function limpiarDetFiltros(){
+  detFiltros={tipo:'todos',cats:[],catsExcluidas:[],banco:'todos',orden:'reciente',cat:'todas',subcat:'todas'};
+  detMostrandoTodasCats=false;
+  const p=document.getElementById('det-filter-panel');
+  if(p)p.classList.remove('open');
+  renderDetalle();
+}
+window.limpiarDetFiltros=limpiarDetFiltros;
+window.aplicarDetFiltros=aplicarDetFiltros;
 
 function toggleModoSeleccion(){
   modoSeleccion=!modoSeleccion;
@@ -1506,10 +1685,12 @@ function abrirGastoById(id){
 document.getElementById('buscador').addEventListener('input',renderDetalle);
 document.getElementById('det-filtro-btn').addEventListener('click',()=>{
   const p=document.getElementById('det-filter-panel');
-  const open=p.style.display==='none';
-  p.style.display=open?'block':'none';
-  if(open)renderDetFilterPanel(getTodosRango());
+  const opening=!p.classList.contains('open');
+  p.classList.toggle('open');
+  if(opening)renderDetFilterPanel(getTodosRango());
 });
+function toggleDetFilters(){}
+window.toggleDetFilters=toggleDetFilters;
 function presetRango(tipo){
   const hoy=new Date();
   const mesHoy=hoy.getMonth(),anioHoy=hoy.getFullYear();
@@ -1522,7 +1703,8 @@ function presetRango(tipo){
   document.getElementById('p-hasta-mes').value=hastaMes;
   document.getElementById('p-hasta-anio').value=hastaAnio;
 }
-document.getElementById('rango-btn').addEventListener('click',()=>{
+const _rangoBtnEl=document.getElementById('rango-btn');
+if(_rangoBtnEl)_rangoBtnEl.addEventListener('click',()=>{
   const anios=[2019,2020,2021,2022,2023,2024,2025,2026];
   ['p-desde-mes','p-hasta-mes'].forEach(id=>{document.getElementById(id).innerHTML=meses.map((m,i)=>`<option value="${i}">${m}</option>`).join('');});
   ['p-desde-anio','p-hasta-anio'].forEach(id=>{document.getElementById(id).innerHTML=anios.map(a=>`<option value="${a}">${a}</option>`).join('');});
@@ -1613,6 +1795,7 @@ function abrirVistaDividir(){
 }
 
 function cerrarVistaDividir(){
+  calcCerrar();
   document.getElementById('ov-gasto-vista-b').style.display='none';
   document.getElementById('ov-gasto-vista-a').style.display='block';
 }
@@ -1644,6 +1827,7 @@ function divRender(){
     const pctP=TOTAL>0&&p.monto>0?Math.round((p.monto/TOTAL)*100):0;
     const label=p.sub?(p.sub.includes(' - ')?p.sub.split(' - ').slice(1).join(' - '):p.sub):'';
     const restoDisponible=TOTAL-divParts.reduce((s,pp,idx)=>idx===i?s:s+pp.monto,0);
+    const calcActiva=calcPartIndex===i;
     return `<div class="dividir-part-card">
       <div class="dividir-part-top">
         <div class="dividir-part-num">${i+1}</div>
@@ -1660,6 +1844,9 @@ function divRender(){
           <input class="dividir-monto-inp" type="number" value="${p.monto||''}"
             placeholder="0" min="0" oninput="divUpdMonto(${i},this.value)" />
         </div>
+        <button class="dividir-calc-btn${calcActiva?' calc-activa':''}" data-part-index="${i}" onclick="abrirCalcPopup(${i})" title="Calculadora" aria-label="Abrir calculadora">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><line x1="14" y1="18" x2="16" y2="18"/></svg>
+        </button>
         <span class="dividir-pct-pill" id="div-pct-${i}">${pctP}%</span>
         <button class="dividir-btn-resto" id="div-resto-btn-${i}" onclick="divUsarResto(${i})" style="display:${restoDisponible>0?'inline-block':'none'}">Usar resto</button>
       </div>
@@ -1749,6 +1936,66 @@ function divUsarResto(i){
   divParts[i].monto=Math.max(0,TOTAL-sinEste);
   divRender();
 }
+function abrirCalcPopup(partIndex){
+  calcPartIndex=partIndex;
+  const valorActual=divParts[partIndex]?.monto||0;
+  calcExpr=valorActual>0?String(valorActual):'';
+  calcValor=valorActual;
+  document.getElementById('calc-popup-label').textContent='Monto → parte '+(partIndex+1);
+  calcActualizarDisplay();
+  const popup=document.getElementById('calc-popup');
+  popup.style.display='block';
+  popup.style.left=Math.max(8,(window.innerWidth-260)/2)+'px';
+  popup.style.top=Math.max(8,(window.innerHeight-popup.offsetHeight)/2)+'px';
+  document.getElementById('calc-popup-overlay').style.display='block';
+  document.querySelectorAll('.dividir-calc-btn').forEach(b=>b.classList.remove('calc-activa'));
+  document.querySelectorAll('.dividir-calc-btn[data-part-index="'+partIndex+'"]')
+    .forEach(b=>b.classList.add('calc-activa'));
+}
+function calcCerrar(){
+  const popup=document.getElementById('calc-popup');
+  const overlay=document.getElementById('calc-popup-overlay');
+  if(popup) popup.style.display='none';
+  if(overlay) overlay.style.display='none';
+  document.querySelectorAll('.dividir-calc-btn').forEach(b=>b.classList.remove('calc-activa'));
+  calcPartIndex=null; calcExpr=''; calcValor=0;
+}
+function calcCerrarSiOverlay(event){
+  if(event.target===document.getElementById('calc-popup-overlay')) calcCerrar();
+}
+function calcTecla(tecla){
+  if(tecla==='AC'){
+    calcExpr=''; calcValor=0;
+  } else if(tecla==='⌫'){
+    calcExpr=calcExpr.slice(0,-1);
+  } else if(tecla==='+/-'){
+    if(calcValor!==0) calcExpr=String(-calcValor);
+  } else if(tecla==='OK'){
+    if(calcPartIndex!==null&&calcValor>=0){
+      divParts[calcPartIndex].monto=Math.round(calcValor);
+      calcCerrar();
+      divRender();
+      divActualizarResumen();
+    }
+    return;
+  } else {
+    calcExpr+=tecla;
+  }
+  try{
+    const expr=calcExpr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-');
+    const val=Function('"use strict"; return ('+expr+')')();
+    if(isFinite(val)&&val>=0) calcValor=Math.round(val);
+  } catch(e){}
+  calcActualizarDisplay();
+}
+function calcActualizarDisplay(){
+  document.getElementById('calc-expr').textContent=calcExpr||' ';
+  document.getElementById('calc-result').textContent='$'+calcValor.toLocaleString('es-CL');
+}
+window.abrirCalcPopup=abrirCalcPopup;
+window.calcCerrar=calcCerrar;
+window.calcCerrarSiOverlay=calcCerrarSiOverlay;
+window.calcTecla=calcTecla;
 function divRemovePart(i){
   if(divParts.length>2){divParts.splice(i,1);divRender();}
 }
@@ -1891,7 +2138,7 @@ async function ejecutarDividir(){
 
 // ── PRESUPUESTO ─────────────────────────────────────────
 function renderPresupuesto(){
-  document.getElementById('ppto-mes').textContent=`${meses[pptoPanelMes]} ${pptoPanelAnio}`;
+  actualizarLabelMesPpto();
   const q=(document.getElementById('ppto-search')?.value||'').toLowerCase().trim();
   const subcatsE=pptoSubcats.filter(s=>s.estado!=='Oculto');
   const key=`${String(pptoPanelMes+1).padStart(2,'0')}-${pptoPanelAnio}`;
@@ -2180,8 +2427,79 @@ document.getElementById('alcance-cancelar').addEventListener('click',()=>{
   if(catAlcancePendiente){catAlcancePendiente=null;return;}
   renderPresupuesto();alcancePendiente=null;
 });
-document.getElementById('ppto-prev').addEventListener('click',()=>{pptoPanelMes--;if(pptoPanelMes<0){pptoPanelMes=11;pptoPanelAnio--;}buildPptoForMonth(pptoPanelMes,pptoPanelAnio);renderPresupuesto();});
-document.getElementById('ppto-next').addEventListener('click',()=>{pptoPanelMes++;if(pptoPanelMes>11){pptoPanelMes=0;pptoPanelAnio++;}buildPptoForMonth(pptoPanelMes,pptoPanelAnio);renderPresupuesto();});
+function setupPptoArrow(id, delta) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  const fresh = btn.cloneNode(true);
+  btn.parentNode.replaceChild(fresh, btn);
+  fresh.addEventListener('pointerdown', (e) => { e.preventDefault(); fresh.blur(); });
+  fresh.addEventListener('pointerup', (e) => {
+    e.preventDefault(); fresh.blur();
+    pptoPanelMes += delta;
+    if (pptoPanelMes < 0)  { pptoPanelMes = 11; pptoPanelAnio--; }
+    if (pptoPanelMes > 11) { pptoPanelMes = 0;  pptoPanelAnio++; }
+    buildPptoForMonth(pptoPanelMes, pptoPanelAnio);
+    renderPresupuesto();
+  });
+}
+setupPptoArrow('ppto-prev', -1);
+setupPptoArrow('ppto-next', +1);
+let pptoSelectorAnioTemp=pptoPanelAnio;
+function actualizarLabelMesPpto(){
+  const mesesCompletos=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const label=document.getElementById('ppto-mes-label');
+  if(label) label.textContent=mesesCompletos[pptoPanelMes]+' '+pptoPanelAnio;
+}
+function renderMesesGridPpto(){
+  const mc=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const hoy=new Date();
+  document.getElementById('ppto-sel-year').textContent=pptoSelectorAnioTemp;
+  document.getElementById('ppto-meses-grid').innerHTML=mc.map((m,i)=>{
+    const esSel=i===pptoPanelMes&&pptoSelectorAnioTemp===pptoPanelAnio;
+    const esActual=i===hoy.getMonth()&&pptoSelectorAnioTemp===hoy.getFullYear();
+    const cls=esSel?'res-mes-opt res-mes-sel':esActual?'res-mes-opt res-mes-actual':'res-mes-opt';
+    return `<button class="${cls}" onclick="seleccionarMesPpto(${i})">${m}</button>`;
+  }).join('');
+}
+function toggleMesSelectorPpto(){
+  const sel=document.getElementById('ppto-mes-selector');
+  const abierto=sel.style.display!=='none';
+  if(abierto){cerrarMesSelectorPpto();}
+  else{
+    pptoSelectorAnioTemp=pptoPanelAnio;
+    sel.style.display='block';
+    document.getElementById('ppto-mes-pill').classList.add('open');
+    document.getElementById('ppto-mes-chevron').textContent='▲';
+    renderMesesGridPpto();
+  }
+}
+function cerrarMesSelectorPpto(){
+  document.getElementById('ppto-mes-selector').style.display='none';
+  document.getElementById('ppto-mes-pill').classList.remove('open');
+  document.getElementById('ppto-mes-chevron').textContent='▼';
+}
+function pptoSelectorAnio(delta){
+  pptoSelectorAnioTemp+=delta;
+  renderMesesGridPpto();
+}
+function seleccionarMesPpto(mes){
+  pptoPanelMes=mes;
+  pptoPanelAnio=pptoSelectorAnioTemp;
+  cerrarMesSelectorPpto();
+  buildPptoForMonth(pptoPanelMes,pptoPanelAnio);
+  renderPresupuesto();
+}
+document.addEventListener('click',function(e){
+  const wrap=document.getElementById('ppto-mes-selector');
+  const pill=document.getElementById('ppto-mes-pill');
+  if(wrap&&wrap.style.display!=='none'){
+    if(!wrap.contains(e.target)&&!pill.contains(e.target))cerrarMesSelectorPpto();
+  }
+});
+window.toggleMesSelectorPpto=toggleMesSelectorPpto;
+window.cerrarMesSelectorPpto=cerrarMesSelectorPpto;
+window.pptoSelectorAnio=pptoSelectorAnio;
+window.seleccionarMesPpto=seleccionarMesPpto;
 document.getElementById('ppto-search').addEventListener('input',()=>renderPresupuesto());
 
 // ── ADMIN ────────────────────────────────────────────────
@@ -2668,7 +2986,15 @@ function ngRenderCatCarousel(query=''){
     const gastado=catD?catD.monto:0;
     return{cat,ppto,gastado,restante:ppto-gastado};
   });
-  cats.sort((a,b)=>b.ppto-a.ppto);
+  const hace6Meses=new Date(hoy.getFullYear(),hoy.getMonth()-6,1);
+  const gastosPorCat={};
+  Object.values(detalleData).flat().forEach(g=>{
+    if(g.ie!=='E') return;
+    const fecha=new Date(g.fecha+'T00:00:00');
+    if(fecha<hace6Meses) return;
+    gastosPorCat[g.cat]=(gastosPorCat[g.cat]||0)+g.monto;
+  });
+  cats.sort((a,b)=>(gastosPorCat[b.cat]||0)-(gastosPorCat[a.cat]||0));
   if(query){
     const q=query.toLowerCase();
     cats=cats.filter(({cat})=>
@@ -2685,10 +3011,8 @@ function ngRenderCatCarousel(query=''){
     const barColor=isOver?'#E07860':'#5CB85C';
     const restLabel=ppto>0?(restante>=0?'$'+Math.round(restante/1000)+'k restante':'-$'+Math.round(Math.abs(restante)/1000)+'k excedido'):'Sin presupuesto';
     const restColor=isOver?'#E07860':'#999';
-    const emoji=NG_CAT_EMOJIS[cat]||'📦';
     const safeCat=cat.replace(/'/g,"\\'");
     return `<div class="ng-cat-card${isActive?' ng-active':''}" data-cat="${cat}" onclick="ngSelectCat('${safeCat}')">
-      <div class="ng-cat-emoji">${emoji}</div>
       <div class="ng-cat-name">${cat}</div>
       <div class="ng-cat-rest" style="color:${restColor}">${restLabel}</div>
       ${ppto>0?`<div class="ng-cat-bar"><div class="ng-cat-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>`:''}
@@ -3636,7 +3960,7 @@ function postGastoNuevo(){
 }
 
 function renderValidacion(){
-  document.getElementById('val-mes').textContent=`${meses[valMes]} ${valAnio}`;
+  actualizarLabelMesVal();
   const key=`${String(valMes+1).padStart(2,'0')}-${valAnio}`;
   const gastosMes=detalleData[key]||[];
 
@@ -3972,8 +4296,78 @@ function abrirSaldoDetalle(){
 }
 
 // ── INIT ─────────────────────────────────────────────────
-document.getElementById('val-prev').addEventListener('click',()=>{valMes--;if(valMes<0){valMes=11;valAnio--;}renderValidacion();});
-document.getElementById('val-next').addEventListener('click',()=>{valMes++;if(valMes>11){valMes=0;valAnio++;}renderValidacion();});
+function setupValArrow(id, delta) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  const fresh = btn.cloneNode(true);
+  btn.parentNode.replaceChild(fresh, btn);
+  fresh.addEventListener('pointerdown', (e) => { e.preventDefault(); fresh.blur(); });
+  fresh.addEventListener('pointerup', (e) => {
+    e.preventDefault(); fresh.blur();
+    valMes += delta;
+    if (valMes < 0)  { valMes = 11; valAnio--; }
+    if (valMes > 11) { valMes = 0;  valAnio++; }
+    renderValidacion();
+  });
+}
+setupValArrow('val-prev', -1);
+setupValArrow('val-next', +1);
+let valSelectorAnioTemp=valAnio;
+function actualizarLabelMesVal(){
+  const mesesCompletos=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const label=document.getElementById('val-mes-label');
+  if(label) label.textContent=mesesCompletos[valMes]+' '+valAnio;
+}
+function renderMesesGridVal(){
+  const mc=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const hoy=new Date();
+  document.getElementById('val-sel-year').textContent=valSelectorAnioTemp;
+  document.getElementById('val-meses-grid').innerHTML=mc.map((m,i)=>{
+    const esSel=i===valMes&&valSelectorAnioTemp===valAnio;
+    const esActual=i===hoy.getMonth()&&valSelectorAnioTemp===hoy.getFullYear();
+    const cls=esSel?'res-mes-opt res-mes-sel':esActual?'res-mes-opt res-mes-actual':'res-mes-opt';
+    return `<button class="${cls}" onclick="seleccionarMesVal(${i})">${m}</button>`;
+  }).join('');
+}
+function toggleMesSelectorVal(){
+  const sel=document.getElementById('val-mes-selector');
+  const abierto=sel.style.display!=='none';
+  if(abierto){cerrarMesSelectorVal();}
+  else{
+    valSelectorAnioTemp=valAnio;
+    sel.style.display='block';
+    document.getElementById('val-mes-pill').classList.add('open');
+    document.getElementById('val-mes-chevron').textContent='▲';
+    renderMesesGridVal();
+  }
+}
+function cerrarMesSelectorVal(){
+  document.getElementById('val-mes-selector').style.display='none';
+  document.getElementById('val-mes-pill').classList.remove('open');
+  document.getElementById('val-mes-chevron').textContent='▼';
+}
+function valSelectorAnio(delta){
+  valSelectorAnioTemp+=delta;
+  renderMesesGridVal();
+}
+function seleccionarMesVal(mes){
+  valMes=mes;
+  valAnio=valSelectorAnioTemp;
+  cerrarMesSelectorVal();
+  actualizarLabelMesVal();
+  renderValidacion();
+}
+document.addEventListener('click',function(e){
+  const wrap=document.getElementById('val-mes-selector');
+  const pill=document.getElementById('val-mes-pill');
+  if(wrap&&wrap.style.display!=='none'){
+    if(!wrap.contains(e.target)&&!pill.contains(e.target))cerrarMesSelectorVal();
+  }
+});
+window.toggleMesSelectorVal=toggleMesSelectorVal;
+window.cerrarMesSelectorVal=cerrarMesSelectorVal;
+window.valSelectorAnio=valSelectorAnio;
+window.seleccionarMesVal=seleccionarMesVal;
 document.getElementById('ov-saldo-detalle').addEventListener('click',e=>{if(e.target===document.getElementById('ov-saldo-detalle'))cerrar('ov-saldo-detalle');});
 
 // ── CUOTAS TC ────────────────────────────────────────────
@@ -4028,7 +4422,6 @@ async function cargarCuotas(){
     cuotasData=rows
       .filter(r=>r&&r[0])
       .map((r,idx)=>{
-        console.log('[Cuotas] fila',idx,'| B:',r[0],'| C:',r[1],'| H:',r[6],'| J:',r[8],'| K:',r[9],'| L:',r[10]);
         return {
           rowOffset:       idx,
           item:            (r[0]||'').trim(),
@@ -5015,3 +5408,27 @@ try{
 }catch(e){}
 
 cargarDatos();
+
+(function initCalcDrag(){
+  const popup=document.getElementById('calc-popup');
+  const header=document.getElementById('calc-popup-header');
+  if(!popup||!header)return;
+  let dragging=false,startX,startY,origLeft,origTop;
+  header.addEventListener('pointerdown',e=>{
+    if(e.target.tagName==='BUTTON')return;
+    dragging=true;
+    startX=e.clientX; startY=e.clientY;
+    origLeft=parseInt(popup.style.left)||0;
+    origTop=parseInt(popup.style.top)||0;
+    header.style.cursor='grabbing';
+    header.setPointerCapture(e.pointerId);
+  });
+  header.addEventListener('pointermove',e=>{
+    if(!dragging)return;
+    const maxL=window.innerWidth-popup.offsetWidth-8;
+    const maxT=window.innerHeight-popup.offsetHeight-8;
+    popup.style.left=Math.max(8,Math.min(maxL,origLeft+(e.clientX-startX)))+'px';
+    popup.style.top=Math.max(8,Math.min(maxT,origTop+(e.clientY-startY)))+'px';
+  });
+  header.addEventListener('pointerup',()=>{dragging=false;header.style.cursor='grab';});
+})();

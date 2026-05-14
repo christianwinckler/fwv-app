@@ -117,6 +117,10 @@ body { font-family: 'Geist', -apple-system, sans-serif; background: var(--bg); }
   display: flex; align-items: center; justify-content: center;
   font-size: 18px; color: var(--muted);
 }
+.mes-arrow:focus,.mes-arrow:focus-visible,.mes-arrow:active,.mes-arrow:focus-within {
+  outline: none !important; box-shadow: none !important;
+  border-color: var(--border) !important; background: var(--bg) !important;
+}
 .mes-label { font-size: 15px; font-weight: 500; color: var(--fg); }
 
 /* ── RESUMEN GRID ──────────────────────────────────────── */
@@ -130,9 +134,9 @@ body { font-family: 'Geist', -apple-system, sans-serif; background: var(--bg); }
   display: flex; flex-direction: column; gap: 4px;
 }
 .resumen-label { font-size: 10px; color: var(--muted); font-weight: 500; letter-spacing: 0.04em; }
-.resumen-valor { font-size: 16px; font-weight: 500; color: var(--fg); }
-.resumen-valor.ing { color: #2e7d32; }
-.resumen-valor.egr { color: #c62828; }
+.resumen-valor { font-size: 15px; font-weight: 500; color: var(--fg); }
+.resumen-valor.ing { font-size: 14px; color: #2e7d32; }
+.resumen-valor.egr { font-size: 14px; color: #c62828; }
 .resumen-valor.bal-pos { color: #2e7d32; }
 .resumen-valor.bal-neg { color: #c62828; }
 .resumen-sub { font-size: 11px; }
@@ -248,6 +252,21 @@ body { font-family: 'Geist', -apple-system, sans-serif; background: var(--bg); }
 .ppto-total-sub { font-size: 12px; color: var(--sub); }
 .ppto-global-bar { height: 6px; background: var(--inner-card); border-radius: 3px; overflow: hidden; margin-top: 6px; }
 .ppto-global-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+.ppto-total-card {
+  margin: 10px 12px 8px;
+  background: var(--card); border: 1px solid var(--border-soft);
+  border-radius: 14px; padding: 14px;
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start;
+}
+.ppto-total-card-left { flex: 1; min-width: 120px; }
+.ppto-total-card-right { flex: 1; min-width: 120px; text-align: right; }
+.ppto-total-card-label {
+  font-size: 9px; font-weight: 500; color: var(--sub);
+  letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 4px;
+}
+.ppto-total-card-monto { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; color: var(--fg); }
+.ppto-total-card-sub { font-size: 13px; font-weight: 500; color: var(--fg); }
+.ppto-total-card-libre { font-size: 11px; color: var(--sub); margin-top: 2px; }
 .ppto-cat-group { margin: 0 12px 8px; }
 .ppto-cat-header {
   display: flex; align-items: center; gap: 8px;
@@ -831,6 +850,35 @@ body { font-family: 'Geist', -apple-system, sans-serif; background: var(--bg); }
 }
 .btn-dividir-guardar.habilitado { background: var(--accent); color: #fff; }
 .btn-dividir-guardar.deshabilitado { background: var(--sub); color: #fff; opacity: .4; cursor: default; }
+.dividir-calc-btn {
+  width: 28px; height: 28px; border-radius: 7px;
+  background: var(--bg); border: 0.5px solid var(--border);
+  color: var(--sub); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; padding: 0; transition: all 0.15s;
+}
+.dividir-calc-btn:hover { background: var(--inner-card); color: var(--fg); }
+.dividir-calc-btn.calc-activa {
+  background: color-mix(in srgb, var(--accent) 12%, var(--card));
+  border-color: var(--accent); color: var(--accent);
+}
+.calc-key {
+  padding: 13px 0; text-align: center; font-size: 15px;
+  color: var(--fg); background: var(--card);
+  border: none;
+  border-right: 0.5px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
+  cursor: pointer; font-family: inherit; transition: background 0.1s;
+}
+.calc-key:hover { background: var(--inner-card); }
+.calc-key:nth-child(4n) { border-right: none; }
+.calc-key-op { color: var(--accent); font-weight: 500; }
+.calc-key-light { background: var(--inner-card); color: var(--muted); font-size: 13px; }
+.calc-key-ok {
+  background: var(--accent); color: #fff;
+  font-weight: 600; font-size: 14px; border-right: none;
+}
+.calc-key-ok:hover { opacity: 0.9; background: var(--accent); }
 
 /* ── CUOTAS TC ─────────────────────────────────────────── */
 .cuotas-add-btn { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; padding:11px 16px; background:color-mix(in srgb, var(--accent) 12%, var(--card)); color:var(--accent); border:0.5px solid var(--border); border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; margin:14px 0 10px; }
@@ -904,6 +952,17 @@ body { font-family: 'Geist', -apple-system, sans-serif; background: var(--bg); }
 .hcuad-kpi-label { font-size:10px; color:var(--muted); font-weight:500; letter-spacing:.04em; margin-bottom:3px; }
 .hcuad-kpi-valor { font-size:18px; font-weight:500; color:var(--fg); }
 .hcuad-kpi-sub { font-size:11px; color:var(--sub); margin-top:2px; }
+.hcuad-kpis-card {
+  background: var(--card); border: 1px solid var(--border-soft);
+  border-radius: 14px; padding: 0;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+}
+.hcuad-kpis-card .hcuad-kpi {
+  background: transparent; border-radius: 0; padding: 12px 14px;
+  border-right: 0.5px solid var(--border); border-bottom: 0.5px solid var(--border);
+}
+.hcuad-kpis-card .hcuad-kpi:nth-child(2n) { border-right: none; }
+.hcuad-kpis-card .hcuad-kpi:nth-last-child(-n+2) { border-bottom: none; }
 .hcuad-filtro-btn { width:100%; display:flex; align-items:center; justify-content:space-between; padding:10px 13px; background:var(--card); border:0.5px solid var(--border); border-radius:10px; font-family:inherit; cursor:pointer; font-size:13px; color:var(--muted); margin:0 12px 4px; width:calc(100% - 24px); }
 .hcuad-filtro-panel { background:var(--card); border:0.5px solid var(--border); border-top:none; border-radius:0 0 10px 10px; padding:12px; margin:0 12px 10px; }
 .hcuad-chip { padding:5px 11px; border-radius:14px; font-size:12px; border:0.5px solid var(--border); background:var(--card); color:var(--muted); cursor:pointer; font-family:inherit; }
@@ -929,7 +988,7 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
 .ng-header { display: flex; align-items: center; justify-content: space-between; padding: 0 0 4px; }
 .ng-sheet-title { font-family: 'Instrument Serif', serif; font-size: 26px; font-weight: 400; letter-spacing: -0.02em; color: var(--fg); margin-bottom: 0; }
 .ng-close-btn { width: 28px; height: 28px; border-radius: 50%; background: #EDE5E0; border: none; cursor: pointer; font-size: 14px; color: #666; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.ng-amount-section { display: flex; flex-direction: column; align-items: center; padding: 20px 0 12px; }
+.ng-amount-section { display: flex; flex-direction: column; align-items: center; padding: 8px 0 6px; }
 .ng-amount-wrap { position: relative; display: flex; justify-content: center; align-items: center; width: 100%; min-height: 64px; cursor: text; }
 .ng-amount-display { font-family: 'Instrument Serif', serif; font-size: 48px; font-weight: 400; font-style: italic; letter-spacing: -0.02em; color: #1A1A1A; pointer-events: none; white-space: nowrap; transition: font-size 0.1s ease; line-height: 1.1; }
 .ng-amount-display.empty { color: #DDD5CF; }
@@ -983,6 +1042,254 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
 .ng-btn-guardar { width: 100%; padding: 15px; background: #E07860; color: #fff; border: none; border-radius: 18px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 4px; transition: opacity 0.18s ease; letter-spacing: 0.01em; }
 .ng-btn-guardar:active { opacity: 0.85; }
 .ng-btn-guardar:disabled { opacity: 0.5; }
+
+/* ── RESUMEN (DASHBOARD) TOPBAR ────────────────────────── */
+.shell-content:has(#screen-dashboard.active) > .navbar { display:none; }
+.res-topbar {
+  position: sticky; top: 0; z-index: 90;
+  padding: 16px 16px 8px; background: var(--bg);
+}
+.res-topbar-row {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+}
+.res-topbar-left { display: flex; align-items: center; }
+.res-title-wrap { display: flex; justify-content: center; }
+.res-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 22px; font-weight: 400;
+  letter-spacing: -0.02em; color: var(--fg); white-space: nowrap;
+}
+.res-topbar-right { display: flex; align-items: center; gap: 7px; justify-content: flex-end; }
+.res-mes-nav {
+  padding: 4px 14px 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.res-nav-arrow {
+  width: 34px; height: 34px; border-radius: 10px;
+  border: 0.5px solid var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: var(--muted); cursor: pointer; flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none; -webkit-user-select: none;
+}
+.res-nav-arrow:hover { background: var(--inner-card); }
+.res-nav-arrow:focus,
+.res-nav-arrow:focus-visible,
+.res-nav-arrow:active {
+  outline: none !important; box-shadow: none !important;
+  border-color: var(--border) !important; background: var(--card) !important;
+  color: var(--muted) !important;
+}
+.res-mes-wrap { flex: 1; position: relative; }
+.res-mes-pill {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 8px 14px; background: var(--card);
+  border: 0.5px solid var(--border); border-radius: 10px;
+  cursor: pointer; font-size: 14px; font-weight: 500; color: var(--fg);
+  font-family: inherit; transition: all 0.15s;
+}
+.res-mes-pill:hover { background: var(--inner-card); }
+.res-mes-pill.open {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--card));
+  color: var(--accent);
+}
+.res-mes-chevron { font-size: 11px; color: var(--sub); }
+.res-mes-pill.open .res-mes-chevron { color: var(--accent); }
+.res-mes-selector {
+  margin-top: 6px;
+  background: var(--card); border-radius: 14px;
+  border: 1px solid var(--border-soft); overflow: hidden;
+}
+.res-sel-header {
+  padding: 10px 14px 9px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 0.5px solid var(--border);
+}
+.res-sel-year-row { display: flex; align-items: center; gap: 10px; }
+.res-sel-year-btn {
+  width: 28px; height: 28px; border-radius: 7px;
+  border: 0.5px solid var(--border); background: var(--inner-card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--muted); cursor: pointer; font-family: inherit;
+}
+.res-sel-year-btn:hover { background: var(--chip-bg); }
+.res-sel-year { font-size: 15px; font-weight: 500; color: var(--fg); min-width: 40px; text-align: center; }
+.res-sel-close {
+  font-size: 15px; color: var(--sub); background: none;
+  border: none; cursor: pointer; padding: 0; font-family: inherit;
+}
+.res-meses-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
+.res-mes-opt {
+  padding: 12px 4px; text-align: center; font-size: 12px; color: var(--muted);
+  cursor: pointer; border: none; background: transparent; font-family: inherit;
+  border-right: 0.5px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
+  transition: background 0.1s;
+}
+.res-mes-opt:nth-child(4n) { border-right: none; }
+.res-mes-opt:nth-child(n+9) { border-bottom: none; }
+.res-mes-opt:hover { background: var(--inner-card); }
+.res-mes-opt.res-mes-actual { color: var(--accent); font-weight: 600; }
+.res-mes-opt.res-mes-sel { background: var(--accent); color: #fff; font-weight: 600; }
+@media (min-width: 921px) {
+  .res-topbar-row { display: flex; align-items: center; justify-content: space-between; }
+  .res-topbar-left { display: none; }
+  .res-title-wrap { flex: 1; justify-content: flex-start; }
+  .res-title { font-size: 32px; }
+  .res-mes-nav { padding: 0 24px 14px; }
+  .res-mes-wrap { flex: none; }
+  .res-mes-pill { width: auto; }
+  .res-mes-selector {
+    position: absolute; top: calc(100% + 6px); left: 0;
+    margin-top: 0; width: 280px; z-index: 200;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+  }
+}
+
+/* ── TOPBAR COMPARTIDA (validacion, cuotas, presupuesto, admin, historial) ── */
+.shell-content:has(#screen-validacion.active) > .navbar,
+.shell-content:has(#screen-cuotas.active) > .navbar,
+.shell-content:has(#screen-presupuesto.active) > .navbar,
+.shell-content:has(#screen-admin.active) > .navbar,
+.shell-content:has(#screen-historial-cuad.active) > .navbar { display: none; }
+.screen-topbar {
+  position: sticky; top: 0; z-index: 90;
+  padding: 16px 16px 8px;
+  background: var(--bg);
+}
+.screen-topbar-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+.screen-topbar-left { display: flex; align-items: center; }
+.screen-title-wrap { display: flex; justify-content: center; }
+.screen-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 22px; font-weight: 400;
+  letter-spacing: -0.02em; color: var(--fg);
+  white-space: nowrap;
+}
+.screen-topbar-right { display: flex; align-items: center; gap: 7px; justify-content: flex-end; }
+@media (min-width: 921px) {
+  .screen-topbar-row { display: flex; align-items: center; }
+  .screen-topbar-left { display: none; }
+  .screen-title-wrap { flex: 1; justify-content: flex-start; }
+  .screen-title { font-size: 32px; }
+}
+
+/* ── DETALLE REDESIGN ──────────────────────────────────── */
+.shell-content:has(#screen-detalle.active) > .navbar { display:none; }
+
+.det-topbar {
+  position: sticky; top: 0; z-index: 90;
+  padding: 16px 16px 0;
+  background: var(--bg);
+}
+.det-topbar-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.det-topbar-left { display: flex; align-items: center; }
+.det-topbar-center { text-align: center; }
+.det-topbar-right { display: flex; align-items: center; gap: 7px; justify-content: flex-end; }
+.det-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 22px; font-weight: 400;
+  letter-spacing: -0.02em; color: var(--fg);
+  white-space: nowrap;
+}
+.det-period-label {
+  font-size: 11px; color: var(--sub);
+  padding: 6px 16px 0; display: block;
+}
+.det-strip-card {
+  margin: 8px 12px;
+  background: var(--card); border: 1px solid var(--border-soft);
+  border-radius: 14px; padding: 9px 12px; display: flex;
+}
+.det-strip-item { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.det-strip-item + .det-strip-item {
+  border-left: 0.5px solid var(--border); padding-left: 10px;
+}
+.det-strip-lbl {
+  font-size: 9px; color: var(--sub); font-weight: 500;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.det-strip-val { font-size: 12px; font-weight: 600; }
+#det-search-container {
+  margin: 0 12px 8px;
+  background: var(--card);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  overflow: hidden;
+}
+#det-search-row {
+  padding: 8px 10px;
+  display: flex; gap: 6px; align-items: center;
+}
+#det-filter-panel {
+  display: none;
+  border-top: 0.5px solid var(--border);
+  padding: 14px 12px 10px;
+  background: transparent; border-radius: 0; margin: 0;
+}
+#det-filter-panel.open { display: block; }
+.det-fs-label {
+  font-size: 9px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  display: block; margin-bottom: 5px;
+}
+.det-chip-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+.det-chip {
+  padding: 4px 10px; border-radius: 999px; font-size: 11px;
+  border: 0.5px solid var(--border); background: var(--inner-card);
+  color: var(--muted); cursor: pointer; font-family: inherit; transition: all 0.12s;
+}
+.det-chip.active {
+  background: var(--accent-soft); border-color: var(--accent);
+  color: var(--accent); font-weight: 500;
+}
+.det-filter-divider { height: 0.5px; background: var(--border); margin: 2px 0 10px; }
+.det-period-desde-hasta { margin-bottom: 8px; }
+.det-period-row-label {
+  font-size: 9px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px;
+}
+.det-period-selects { display: flex; gap: 6px; }
+.det-period-selects select {
+  padding: 6px 8px; border: 0.5px solid var(--border);
+  border-radius: 8px; font-size: 13px; color: var(--fg);
+  background: var(--inner-card); font-family: inherit;
+}
+.det-period-selects select.sel-mes { flex: 2; }
+.det-period-selects select.sel-anio { flex: 1; }
+.det-panel-actions { display: flex; gap: 6px; margin-top: 6px; }
+.det-btn-clear {
+  flex: 1; padding: 9px; background: var(--inner-card);
+  border: 0.5px solid var(--border); border-radius: 8px;
+  font-size: 12px; color: var(--muted); cursor: pointer; font-family: inherit;
+}
+.det-btn-apply {
+  flex: 2; padding: 9px; background: var(--accent); border: none;
+  border-radius: 8px; font-size: 12px; font-weight: 500;
+  color: #fff; cursor: pointer; font-family: inherit;
+}
+#det-filtro-btn.filtros-activos {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+@media (min-width: 921px) {
+  .det-topbar-row { display: flex; align-items: center; }
+  .det-topbar-left { display: none; }
+  .det-topbar-center { flex: 1; text-align: left; }
+  .det-title { font-size: 32px; }
+  #det-search-container { margin-left: 0; margin-right: 0; }
+}
 
   `
 
@@ -1109,10 +1416,45 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
 
     <!-- DASHBOARD -->
     <div class="screen" id="screen-dashboard">
-      <div class="mes-nav">
-        <button class="mes-arrow" id="dash-prev">‹</button>
-        <span class="mes-label" id="dash-mes">Abril 2026</span>
-        <button class="mes-arrow" id="dash-next">›</button>
+      <div class="res-topbar">
+        <div class="res-topbar-row">
+          <div class="res-topbar-left">
+            <button class="ham-btn res-ham-btn" onclick="abrirSidebarMobile()" title="Menú">
+              <span class="ham-line"></span><span class="ham-line"></span><span class="ham-line"></span>
+            </button>
+          </div>
+          <div class="res-title-wrap">
+            <span class="res-title">Resumen de Gastos</span>
+          </div>
+          <div class="res-topbar-right">
+            <button class="icon-btn" onclick="actualizarTodo()" title="Actualizar datos">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 10 3.07"/><path d="M13.5 2v4h-4"/></svg>
+            </button>
+            <button class="icon-btn add" onclick="abrirNuevoGasto()" title="Nuevo gasto">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="res-mes-nav">
+        <button class="res-nav-arrow" id="dash-prev" tabindex="-1">‹</button>
+        <div class="res-mes-wrap">
+          <div class="res-mes-pill" id="res-mes-pill" onclick="toggleMesSelectorResumen()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <span id="res-mes-label">Mayo 2026</span>
+            <span class="res-mes-chevron" id="res-mes-chevron">▼</span>
+          </div>
+          <div class="res-mes-selector" id="res-mes-selector" style="display:none;">
+            <div class="res-sel-header">
+              <div class="res-sel-year-row">
+                <button class="res-sel-year-btn" onclick="resSelectorAnio(-1)">‹</button>
+                <span class="res-sel-year" id="res-sel-year">2026</span>
+                <button class="res-sel-year-btn" onclick="resSelectorAnio(1)">›</button>
+              </div>
+              <button class="res-sel-close" onclick="cerrarMesSelectorResumen()">✕</button>
+            </div>
+            <div class="res-meses-grid" id="res-meses-grid"></div>
+          </div>
+        </div>
+        <button class="res-nav-arrow" id="dash-next" tabindex="-1">›</button>
       </div>
       <div class="resumen-grid-2" style="padding-top:12px;">
         <div class="res-card-accent" style="border-left-color:#2e7d32;">
@@ -1154,25 +1496,66 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
 
     <!-- DETALLE -->
     <div class="screen" id="screen-detalle">
-      <div class="rango-btn" id="rango-btn">
-        <span class="rango-label" id="rango-label">Abr 2026 — Abr 2026</span>
-        <span style="font-size:13px;color:#999;">▼</span>
-      </div>
-      <div class="search-wrap">
-        <div style="display:flex;gap:6px;align-items:center;">
-          <div style="position:relative;flex:1;">
-            <span class="search-icon">🔍</span>
-            <input class="search-input" id="buscador" placeholder="Buscar gasto..." />
+      <!-- Topbar propia -->
+      <div class="det-topbar">
+        <div class="det-topbar-row">
+          <div class="det-topbar-left">
+            <button class="ham-btn" onclick="abrirSidebarMobile()" title="Menú">
+              <span class="ham-line"></span><span class="ham-line"></span><span class="ham-line"></span>
+            </button>
           </div>
-          <button id="det-filtro-btn" style="width:32px;height:32px;border:0.5px solid #e0e0e0;border-radius:8px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5 8h6M7 12h2" stroke="#666" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <div class="det-topbar-center">
+            <span class="det-title">Detalle de gastos</span>
+          </div>
+          <div class="det-topbar-right">
+            <button class="icon-btn" onclick="actualizarTodo()" title="Actualizar datos">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 10 3.07"/><path d="M13.5 2v4h-4"/></svg>
+            </button>
+            <button class="icon-btn add" onclick="abrirNuevoGasto()" title="Nuevo gasto">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumen compacto -->
+      <div class="det-strip-card">
+        <div class="det-strip-item">
+          <span class="det-strip-lbl">Ingresos</span>
+          <span class="det-strip-val" id="s-i" style="color:var(--green)">$0</span>
+        </div>
+        <div class="det-strip-item">
+          <span class="det-strip-lbl">Egresos</span>
+          <span class="det-strip-val" id="s-e" style="color:#c62828">$0</span>
+        </div>
+        <div class="det-strip-item">
+          <span class="det-strip-lbl">Movimientos</span>
+          <span class="det-strip-val" id="s-n" style="color:var(--fg)">0</span>
+        </div>
+      </div>
+      <span id="s-e-real" style="display:none">$0</span>
+
+      <!-- Label de período -->
+      <span class="det-period-label" id="det-periodo-label">Cargando...</span>
+
+      <!-- Búsqueda + filtros: contenedor unificado expandible -->
+      <div id="det-search-container">
+        <div id="det-search-row">
+          <div style="position:relative;flex:1;">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--sub);font-size:14px;">🔍</span>
+            <input class="search-input" id="buscador" placeholder="Buscar gasto..." style="padding-left:34px;" />
+          </div>
+          <button id="det-filtro-btn" style="display:flex;align-items:center;gap:5px;padding:7px 11px;border-radius:8px;font-size:12px;background:var(--card);border:0.5px solid var(--border);color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="width:13px;height:13px;flex-shrink:0;"><path d="M3 5h14M6 10h8M9 15h2"/></svg>
+            <span id="det-filtro-btn-label">Filtros</span>
           </button>
           <button id="btn-modo-seleccion" onclick="toggleModoSeleccion()"
             style="padding:6px 11px;border-radius:8px;font-size:12px;font-weight:500;border:0.5px solid var(--accent);background:color-mix(in srgb, var(--accent) 12%, var(--card));color:var(--accent);cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;">
             ✓ Seleccionar
           </button>
         </div>
+        <div id="det-filter-panel"></div>
       </div>
+
+      <!-- Barra de selección múltiple -->
       <div id="selection-bar" style="display:none;background:#e8f0fe;border-bottom:0.5px solid #c5d9f7;padding:8px 12px;align-items:center;justify-content:space-between;">
         <div style="display:flex;align-items:center;gap:8px;">
           <div id="check-all-btn" onclick="toggleSeleccionTodos()"
@@ -1195,36 +1578,66 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
           </button>
         </div>
       </div>
-      <div id="det-filter-panel" style="display:none;background:#fff;padding:12px 16px;border-bottom:0.5px solid #e0e0e0;z-index:20;position:relative;"></div>
-      <div class="resumen-strip">
-        <div class="strip-item"><span class="strip-label">INGRESOS</span><span class="strip-valor i" id="s-i">$0</span></div>
-        <div class="strip-sep"></div>
-        <div class="strip-item"><span class="strip-label">EGRESOS</span><span class="strip-valor e" id="s-e">$0</span></div>
-        <div class="strip-sep"></div>
-        <div class="strip-item"><span class="strip-label">EGRESO REAL</span><span class="strip-valor e" id="s-e-real">$0</span></div>
-        <div class="strip-sep"></div>
-        <div class="strip-item"><span class="strip-label">MOVIMIENTOS</span><span class="strip-valor" id="s-n" style="color:#111">0</span></div>
-      </div>
+
+      <!-- Lista -->
       <div class="lista" id="lista"></div>
     </div>
 
     <!-- PRESUPUESTO -->
     <div class="screen" id="screen-presupuesto">
-      <div class="mes-nav">
-        <button class="mes-arrow" id="ppto-prev">‹</button>
-        <span class="mes-label" id="ppto-mes">Abril 2026</span>
-        <button class="mes-arrow" id="ppto-next">›</button>
+      <div class="screen-topbar">
+        <div class="screen-topbar-row">
+          <div class="screen-topbar-left">
+            <button class="ham-btn screen-ham-btn" onclick="abrirSidebarMobile()" title="Menú">
+              <span class="ham-line"></span><span class="ham-line"></span><span class="ham-line"></span>
+            </button>
+          </div>
+          <div class="screen-title-wrap">
+            <span class="screen-title">Administración de Presupuestos</span>
+          </div>
+          <div class="screen-topbar-right">
+            <button class="icon-btn" onclick="actualizarTodo()" title="Actualizar datos">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 10 3.07"/><path d="M13.5 2v4h-4"/></svg>
+            </button>
+            <button class="icon-btn add" onclick="abrirNuevoGasto()" title="Nuevo gasto">+</button>
+          </div>
+        </div>
       </div>
-      <div class="ppto-total-bar">
-        <div class="ppto-total-row">
-          <span class="ppto-total-label">TOTAL PRESUPUESTADO</span>
-          <span class="ppto-total-monto" id="ppto-total">$0</span>
+      <div class="res-mes-nav">
+        <button class="res-nav-arrow" id="ppto-prev" tabindex="-1">‹</button>
+        <div class="res-mes-wrap">
+          <div class="res-mes-pill" id="ppto-mes-pill" onclick="toggleMesSelectorPpto()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <span id="ppto-mes-label">Mayo 2026</span>
+            <span class="res-mes-chevron" id="ppto-mes-chevron">▼</span>
+          </div>
+          <div class="res-mes-selector" id="ppto-mes-selector" style="display:none;">
+            <div class="res-sel-header">
+              <div class="res-sel-year-row">
+                <button class="res-sel-year-btn" onclick="pptoSelectorAnio(-1)">‹</button>
+                <span class="res-sel-year" id="ppto-sel-year">2026</span>
+                <button class="res-sel-year-btn" onclick="pptoSelectorAnio(1)">›</button>
+              </div>
+              <button class="res-sel-close" onclick="cerrarMesSelectorPpto()">✕</button>
+            </div>
+            <div class="res-meses-grid" id="ppto-meses-grid"></div>
+          </div>
         </div>
-        <div class="ppto-total-row" style="margin-bottom:4px;">
-          <span class="ppto-total-sub" id="ppto-real-txt"></span>
-          <span class="ppto-total-sub" id="ppto-libre-txt"></span>
+        <button class="res-nav-arrow" id="ppto-next" tabindex="-1">›</button>
+      </div>
+      <div class="ppto-total-card">
+        <div class="ppto-total-card-left">
+          <div class="ppto-total-card-label">TOTAL PRESUPUESTADO</div>
+          <div class="ppto-total-card-monto" id="ppto-total">$0</div>
         </div>
-        <div class="ppto-global-bar"><div class="ppto-global-fill" id="ppto-global-fill" style="width:0%"></div></div>
+        <div class="ppto-total-card-right">
+          <div class="ppto-total-card-label">EJECUTADO</div>
+          <div class="ppto-total-card-sub" id="ppto-real-txt"></div>
+          <div class="ppto-total-card-libre" id="ppto-libre-txt"></div>
+        </div>
+        <div style="width:100%;">
+          <div class="ppto-global-bar"><div class="ppto-global-fill" id="ppto-global-fill" style="width:0%"></div></div>
+        </div>
       </div>
       <div style="padding:8px 12px 4px;display:flex;gap:6px;align-items:center;">
         <input id="ppto-search" type="search" placeholder="Buscar subcategoría..."
@@ -1237,6 +1650,23 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
 
     <!-- ADMIN -->
     <div class="screen" id="screen-admin">
+      <div class="screen-topbar">
+        <div class="screen-topbar-row">
+          <div class="screen-topbar-left">
+            <button class="ham-btn screen-ham-btn" onclick="abrirSidebarMobile()" title="Menú">
+              <span class="ham-line"></span><span class="ham-line"></span><span class="ham-line"></span>
+            </button>
+          </div>
+          <div class="screen-title-wrap">
+            <span class="screen-title">Administración de Categorías</span>
+          </div>
+          <div class="screen-topbar-right">
+            <button class="icon-btn" onclick="actualizarTodo()" title="Actualizar datos">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 10 3.07"/><path d="M13.5 2v4h-4"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
       <div class="admin-section">
         <div class="admin-section-title">CATEGORÍAS Y SUBCATEGORÍAS</div>
         <div style="display:flex;gap:6px;margin-bottom:8px;">
@@ -1259,16 +1689,69 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
 
     <!-- VALIDACIÓN -->
     <div class="screen" id="screen-validacion">
-      <div class="mes-nav">
-        <button class="mes-arrow" id="val-prev">‹</button>
-        <span class="mes-label" id="val-mes">Abril 2026</span>
-        <button class="mes-arrow" id="val-next">›</button>
+      <div class="screen-topbar">
+        <div class="screen-topbar-row">
+          <div class="screen-topbar-left">
+            <button class="ham-btn screen-ham-btn" onclick="abrirSidebarMobile()" title="Menú">
+              <span class="ham-line"></span><span class="ham-line"></span><span class="ham-line"></span>
+            </button>
+          </div>
+          <div class="screen-title-wrap">
+            <span class="screen-title">Validación de Pagos Mensuales</span>
+          </div>
+          <div class="screen-topbar-right">
+            <button class="icon-btn" onclick="actualizarTodo()" title="Actualizar datos">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 10 3.07"/><path d="M13.5 2v4h-4"/></svg>
+            </button>
+            <button class="icon-btn add" onclick="abrirNuevoGasto()" title="Nuevo gasto">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="res-mes-nav">
+        <button class="res-nav-arrow" id="val-prev" tabindex="-1">‹</button>
+        <div class="res-mes-wrap">
+          <div class="res-mes-pill" id="val-mes-pill" onclick="toggleMesSelectorVal()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <span id="val-mes-label">Mayo 2026</span>
+            <span class="res-mes-chevron" id="val-mes-chevron">▼</span>
+          </div>
+          <div class="res-mes-selector" id="val-mes-selector" style="display:none;">
+            <div class="res-sel-header">
+              <div class="res-sel-year-row">
+                <button class="res-sel-year-btn" onclick="valSelectorAnio(-1)">‹</button>
+                <span class="res-sel-year" id="val-sel-year">2026</span>
+                <button class="res-sel-year-btn" onclick="valSelectorAnio(1)">›</button>
+              </div>
+              <button class="res-sel-close" onclick="cerrarMesSelectorVal()">✕</button>
+            </div>
+            <div class="res-meses-grid" id="val-meses-grid"></div>
+          </div>
+        </div>
+        <button class="res-nav-arrow" id="val-next" tabindex="-1">›</button>
       </div>
       <div id="val-content"></div>
     </div>
 
     <!-- CUOTAS TC -->
     <div class="screen" id="screen-cuotas">
+      <div class="screen-topbar">
+        <div class="screen-topbar-row">
+          <div class="screen-topbar-left">
+            <button class="ham-btn screen-ham-btn" onclick="abrirSidebarMobile()" title="Menú">
+              <span class="ham-line"></span><span class="ham-line"></span><span class="ham-line"></span>
+            </button>
+          </div>
+          <div class="screen-title-wrap">
+            <span class="screen-title">Pagos en Cuotas - Tarjeta Crédito</span>
+          </div>
+          <div class="screen-topbar-right">
+            <button class="icon-btn" onclick="actualizarTodo()" title="Actualizar datos">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 10 3.07"/><path d="M13.5 2v4h-4"/></svg>
+            </button>
+            <button class="icon-btn add" onclick="abrirNuevaCuota()" title="Nueva cuota">+</button>
+          </div>
+        </div>
+      </div>
       <div style="padding:0 12px;">
         <button class="cuotas-add-btn" onclick="abrirNuevaCuota()">
           <span style="font-size:18px;line-height:1;">+</span> Agregar gasto en cuotas
@@ -1284,8 +1767,26 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
 
     <!-- HISTORIAL CUADRATURAS -->
     <div class="screen" id="screen-historial-cuad">
-      <div style="padding:14px 12px 8px;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;" id="hcuad-kpis"></div>
+      <div class="screen-topbar">
+        <div class="screen-topbar-row">
+          <div class="screen-topbar-left">
+            <button class="ham-btn screen-ham-btn" onclick="abrirSidebarMobile()" title="Menú">
+              <span class="ham-line"></span><span class="ham-line"></span><span class="ham-line"></span>
+            </button>
+          </div>
+          <div class="screen-title-wrap">
+            <span class="screen-title">Historial de Cuadraturas</span>
+          </div>
+          <div class="screen-topbar-right">
+            <button class="icon-btn" onclick="actualizarTodo()" title="Actualizar datos">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 10 3.07"/><path d="M13.5 2v4h-4"/></svg>
+            </button>
+            <button class="icon-btn add" onclick="abrirNuevoGasto()" title="Nuevo gasto">+</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:10px 12px 8px;">
+        <div class="hcuad-kpis-card" id="hcuad-kpis"></div>
       </div>
       <div style="padding:0 12px 6px;">
         <button onclick="toggleHcuadFiltros()" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:#fff;border:0.5px solid #e0e0e0;border-radius:10px;font-family:inherit;cursor:pointer;font-size:13px;color:#555;">
@@ -1706,7 +2207,7 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
       </div>
       <div class="ng-search-results" id="ng-search-results"></div>
     </div>
-    <div class="ng-section-label" style="margin-top:0;">CATEGORÍA</div>
+    <div class="ng-section-label">CATEGORÍA</div>
     <div class="ng-carousel" id="ng-cat-carousel"><div style="color:#C4B5AD;font-size:13px;padding:8px 0;">Cargando...</div></div>
 
     <!-- 4. Subcategory carousel -->
@@ -2215,6 +2716,51 @@ body.sheet-open { overflow: hidden; position: fixed; width: 100%; }
   <div style="font-size:40px;">⚠️</div>
   <div id="error-text" style="font-size:15px;color:var(--error);font-weight:500;line-height:1.6;max-width:340px;font-family:-apple-system,sans-serif;white-space:pre-line;"></div>
   <button onclick="cargarDatos()" style="padding:12px 28px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit;">Reintentar</button>
+</div>
+
+<!-- CALCULADORA POPUP -->
+<div id="calc-popup-overlay" onclick="calcCerrarSiOverlay(event)"
+  style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.25);"></div>
+
+<div id="calc-popup" style="display:none;position:fixed;z-index:501;
+  background:var(--card);border-radius:20px;overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,0.22);width:260px;touch-action:none;">
+  <div id="calc-popup-header"
+    style="display:flex;align-items:center;justify-content:space-between;
+           padding:10px 14px 8px;border-bottom:0.5px solid var(--border);
+           cursor:grab;user-select:none;">
+    <span id="calc-popup-label" style="font-size:11px;color:var(--muted);">Monto → parte 1</span>
+    <button onclick="calcCerrar()"
+      style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);padding:0;line-height:1;">✕</button>
+  </div>
+  <div style="background:#1a1a1a;padding:10px 14px;">
+    <div id="calc-expr"
+      style="font-size:12px;color:#aaa;text-align:right;min-height:16px;word-break:break-all;">&nbsp;</div>
+    <div id="calc-result"
+      style="font-size:30px;font-weight:400;color:#fff;text-align:right;letter-spacing:-0.01em;
+             font-family:'Geist',-apple-system,sans-serif;">$0</div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);">
+    <button class="calc-key calc-key-light" onclick="calcTecla('AC')">AC</button>
+    <button class="calc-key calc-key-light" onclick="calcTecla('+/-')">+/-</button>
+    <button class="calc-key calc-key-light" onclick="calcTecla('⌫')">⌫</button>
+    <button class="calc-key calc-key-op"   onclick="calcTecla('÷')">÷</button>
+    <button class="calc-key" onclick="calcTecla('7')">7</button>
+    <button class="calc-key" onclick="calcTecla('8')">8</button>
+    <button class="calc-key" onclick="calcTecla('9')">9</button>
+    <button class="calc-key calc-key-op" onclick="calcTecla('×')">×</button>
+    <button class="calc-key" onclick="calcTecla('4')">4</button>
+    <button class="calc-key" onclick="calcTecla('5')">5</button>
+    <button class="calc-key" onclick="calcTecla('6')">6</button>
+    <button class="calc-key calc-key-op" onclick="calcTecla('−')">−</button>
+    <button class="calc-key" onclick="calcTecla('1')">1</button>
+    <button class="calc-key" onclick="calcTecla('2')">2</button>
+    <button class="calc-key" onclick="calcTecla('3')">3</button>
+    <button class="calc-key calc-key-op" onclick="calcTecla('+')">+</button>
+    <button class="calc-key" style="grid-column:span 2" onclick="calcTecla('0')">0</button>
+    <button class="calc-key" onclick="calcTecla('.')">.</button>
+    <button class="calc-key calc-key-ok" onclick="calcTecla('OK')">OK →</button>
+  </div>
 </div>
 
   `
