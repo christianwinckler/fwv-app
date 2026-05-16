@@ -8,7 +8,7 @@ const env = Object.fromEntries(
     .map(l => [l.split('=')[0].trim(), l.slice(l.indexOf('=') + 1).trim()])
 )
 
-const SHEET_ID = env.SHEET_ID
+const GASTOS_SHEET_ID = env.GASTOS_SHEET_ID
 const auth = new google.auth.GoogleAuth({
   credentials: {
     client_email: env.SERVICE_ACCOUNT_EMAIL,
@@ -64,7 +64,7 @@ const MODO_POR_SUBCAT = {
 
 async function main() {
   const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SHEET_ID,
+    spreadsheetId: GASTOS_SHEET_ID,
     range: 'Parámetros!A:D',
   })
   const rows = res.data.values || []
@@ -97,7 +97,7 @@ async function main() {
   }
 
   await sheets.spreadsheets.values.batchUpdate({
-    spreadsheetId: SHEET_ID,
+    spreadsheetId: GASTOS_SHEET_ID,
     requestBody: {
       valueInputOption: 'USER_ENTERED',
       data: updates,
