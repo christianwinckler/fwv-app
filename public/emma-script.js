@@ -99,11 +99,107 @@ function emmaOcultarLoading() {
   if (el) el.style.display = 'none'
 }
 
-// ── DATOS (mock estático por ahora) ───────────────────────
+// ── DATOS ─────────────────────────────────────────────────
+let emmaDataCargada = false
+let emmaComidasData = []
+let emmaRutinasData = []
+let emmaPlanesData  = []
+
 async function emmaCargarDatos() {
-  emmaMostrarLoading()
-  emmaOcultarLoading()
-  emmaRenderDonut()
+  try {
+    const res = await fetch('/api/emma/datos')
+    if (!res.ok) throw new Error('Error ' + res.status)
+    const data = await res.json()
+    if (!data.ok) throw new Error(data.error || 'Error desconocido')
+
+    emmaComidasData = (data.comidas || []).slice(1).map(r => ({
+      id:        parseInt(r[0]),
+      nombre:    r[1] || '',
+      categoria: r[2] || '',
+      tamano:    parseFloat(r[3]) || 0,
+      unidad:    r[4] || 'cc',
+      emoji:     r[5] || '🍽️',
+      activo:    r[6] === 'TRUE' || r[6] === true,
+      _row:      (data.comidas || []).indexOf(r) + 1,
+    }))
+
+    emmaRutinasData = (data.rutinas || []).slice(1).map(r => ({
+      id:           parseInt(r[0]),
+      nombre:       r[1] || '',
+      desc:         r[2] || '',
+      emoji:        r[3] || '📋',
+      tipo:         r[4] || 'binario',
+      registroTipo: r[4] || 'binario',
+      activo:       r[5] === 'TRUE' || r[5] === true,
+      _row:         (data.rutinas || []).indexOf(r) + 1,
+    }))
+
+    const planesBase = (data.planes || []).slice(1).map(r => ({
+      id:            parseInt(r[0]),
+      nombre:        r[1] || '',
+      activo:        r[2] === 'TRUE' || r[2] === true,
+      fechaCreacion: r[3] || '',
+      _row:          (data.planes || []).indexOf(r) + 1,
+      items:         [],
+    }))
+
+    const allItems = (data.planesItems || []).slice(1).map(r => ({
+      id:           parseInt(r[0]),
+      planId:       parseInt(r[1]),
+      tipo:         r[2] || 'comida',
+      referenciaId: parseInt(r[3]),
+      nombre:       r[4] || '',
+      emoji:        r[5] || '🍽️',
+      cat:          r[6] || '',
+      etiqueta:     r[7] || '',
+      hora:         parseInt(r[8]) || 0,
+      min:          parseInt(r[9]) || 0,
+      flexible:     r[10] === 'TRUE' || r[10] === true,
+      orden:        parseInt(r[11]) || 1,
+      _row:         (data.planesItems || []).indexOf(r) + 1,
+    }))
+
+    allItems.forEach(item => {
+      if (item.tipo === 'comida') {
+        const comida = emmaComidasData.find(c => c.id === item.referenciaId)
+        if (comida) { item.tamano = comida.tamano; item.unidad = comida.unidad }
+      }
+      if (item.tipo === 'rutina') {
+        const rutina = emmaRutinasData.find(r => r.id === item.referenciaId)
+        if (rutina) item.registroTipo = rutina.tipo
+      }
+      if (item.tipo === 'rutina') {
+        item.sub = item.etiqueta || 'Rutina'
+      } else if (item.tamano && item.unidad) {
+        item.sub = item.tamano + ' ' + item.unidad + (item.etiqueta ? ' · ' + item.etiqueta : ' · cualquier tipo')
+      } else {
+        item.sub = item.etiqueta || 'Categoría ' + item.cat
+      }
+    })
+
+    planesBase.forEach(plan => {
+      plan.items = allItems
+        .filter(i => i.planId === plan.id)
+        .sort((a, b) => {
+          if (a.flexible !== b.flexible) return a.flexible ? 1 : -1
+          const tA = a.hora * 60 + a.min
+          const tB = b.hora * 60 + b.min
+          return tA !== tB ? tA - tB : a.orden - b.orden
+        })
+    })
+
+    emmaPlanesData = planesBase
+    emmaDataCargada = true
+
+    const screenActiva = document.querySelector('.screen.active')?.id
+    if (screenActiva === 'screen-comidas')    emmaComidasRender()
+    if (screenActiva === 'screen-rutinas')    emmaRutinasRender()
+    if (screenActiva === 'screen-planes')     emmaPlanesRenderLista()
+    if (screenActiva === 'screen-calendario') emmaCalRender()
+
+  } catch (err) {
+    console.error('[Emma] emmaCargarDatos error:', err)
+  }
 }
 
 // ── DONUT ─────────────────────────────────────────────────
@@ -140,8 +236,9 @@ function emmaRenderDonut() {
 }
 
 // ── ACCIONES ──────────────────────────────────────────────
-function emmaActualizarTodo() {
-  emmaMostrarToast('Datos actualizados ✓')
+async function emmaActualizarTodo() {
+  emmaDataCargada = false
+  await emmaCargarDatos()
 }
 
 function emmaAbrirNuevaComida() {
@@ -159,17 +256,7 @@ window.emmaCargarDatos = emmaCargarDatos
 
 emmaCargarDatos()
 
-// ── COMIDAS MOCK ──────────────────────────────────────────
-const emmaComidasData = [
-  { id:1, nombre:'Mamadera',          categoria:'Leche',    tamano:120, unidad:'cc', emoji:'🍼', activo:true  },
-  { id:2, nombre:'Fórmula',           categoria:'Leche',    tamano:150, unidad:'cc', emoji:'🥛', activo:true  },
-  { id:3, nombre:'Puré de zanahoria', categoria:'Sólidos',  tamano:80,  unidad:'gr', emoji:'🥕', activo:true  },
-  { id:4, nombre:'Pollo desmenuzado', categoria:'Sólidos',  tamano:50,  unidad:'gr', emoji:'🍗', activo:false },
-  { id:5, nombre:'Palta aplastada',   categoria:'Sólidos',  tamano:60,  unidad:'gr', emoji:'🥑', activo:true  },
-  { id:6, nombre:'Plátano pisado',    categoria:'Postre',   tamano:40,  unidad:'gr', emoji:'🍌', activo:true  },
-  { id:7, nombre:'Compota de manzana',categoria:'Postre',   tamano:70,  unidad:'cc', emoji:'🍎', activo:true  },
-]
-
+// ── COMIDAS ───────────────────────────────────────────────
 let emmaComidasFiltro = 'todas'
 let emmaComidasEditandoId = null
 
@@ -296,36 +383,61 @@ function emmaComidasAbrirEditar(id) {
 
 function emmaComidasGuardarNueva() {
   const nombre = document.getElementById('nueva-nombre').value.trim()
-  const tamano = parseInt(document.getElementById('nueva-tamano').value)
+  const tamano = parseFloat(document.getElementById('nueva-tamano').value)
   const emoji  = document.getElementById('nueva-emoji').value.trim() || '🍽️'
   const catEl  = document.querySelector('#nueva-cat-chips .comidas-cat-chip.active:not(.add-cat)')
   const unidad = document.querySelector('#comidas-modal-nueva .comidas-unit-pill.active')?.textContent || 'cc'
   if (!nombre || !catEl || isNaN(tamano)) return
-  const newId = Math.max(...emmaComidasData.map(c => c.id)) + 1
-  emmaComidasData.push({ id: newId, nombre, categoria: catEl.textContent, tamano, unidad, emoji, activo: true })
-  emmaComidasRender()
-  emmaComidasCerrar('comidas-modal-nueva')
+  fetch('/api/emma/comidas', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nombre, categoria: catEl.textContent.trim(), tamano, unidad, emoji, activo: true })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) { emmaCargarDatos(); emmaComidasCerrar('comidas-modal-nueva') }
+    else console.error('[Emma] Error guardando comida:', data.error)
+  })
+  .catch(err => console.error('[Emma] fetch error:', err))
 }
 
 function emmaComidasGuardarEdicion() {
   const c = emmaComidasData.find(x => x.id === emmaComidasEditandoId)
   if (!c) return
-  const catEl = document.querySelector('#editar-cat-chips .comidas-cat-chip.active:not(.add-cat)')
-  c.nombre    = document.getElementById('editar-nombre').value.trim() || c.nombre
-  c.tamano    = parseInt(document.getElementById('editar-tamano').value) || c.tamano
-  c.emoji     = document.getElementById('editar-emoji').value.trim() || c.emoji
-  c.categoria = catEl ? catEl.textContent : c.categoria
-  c.unidad    = document.querySelector('#editar-unidad-group .comidas-unit-pill.active')?.textContent || c.unidad
-  c.activo    = document.getElementById('editar-activo-switch').classList.contains('on')
-  emmaComidasRender()
-  emmaComidasCerrar('comidas-modal-editar')
+  const catEl  = document.querySelector('#editar-cat-chips .comidas-cat-chip.active:not(.add-cat)')
+  const nombre = document.getElementById('editar-nombre').value.trim() || c.nombre
+  const tamano = parseFloat(document.getElementById('editar-tamano').value) || c.tamano
+  const emoji  = document.getElementById('editar-emoji').value.trim() || c.emoji
+  const cat    = catEl ? catEl.textContent.trim() : c.categoria
+  const unidad = document.querySelector('#editar-unidad-group .comidas-unit-pill.active')?.textContent || c.unidad
+  const activo = document.getElementById('editar-activo-switch').classList.contains('on')
+  fetch('/api/emma/comidas', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rowIndex: c._row, nombre, categoria: cat, tamano, unidad, emoji, activo })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) { emmaCargarDatos(); emmaComidasCerrar('comidas-modal-editar') }
+    else console.error('[Emma] Error editando comida:', data.error)
+  })
+  .catch(err => console.error('[Emma] fetch error:', err))
 }
 
 function emmaComidasEliminar() {
-  const idx = emmaComidasData.findIndex(x => x.id === emmaComidasEditandoId)
-  if (idx > -1) emmaComidasData.splice(idx, 1)
-  emmaComidasRender()
-  emmaComidasCerrar('comidas-modal-editar')
+  const c = emmaComidasData.find(x => x.id === emmaComidasEditandoId)
+  if (!c) return
+  fetch('/api/emma/comidas', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rowIndex: c._row })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) { emmaCargarDatos(); emmaComidasCerrar('comidas-modal-editar') }
+    else console.error('[Emma] Error eliminando comida:', data.error)
+  })
+  .catch(err => console.error('[Emma] fetch error:', err))
 }
 
 function emmaComidasToggleUnidad(btn) {
@@ -358,14 +470,7 @@ window.emmaComidasAgregarCat = emmaComidasAgregarCat
 window.emmaComidasSelCat = emmaComidasSelCat
 window.emmaComidasMostrarNuevaCat = emmaComidasMostrarNuevaCat
 
-// ── RUTINAS MOCK ──────────────────────────────────────────
-const emmaRutinasData = [
-  { id:1, nombre:'Vitaminas',                 desc:'Suplemento diario', emoji:'💊',    tipo:'binario',  activo:true  },
-  { id:2, nombre:'Ejercicios Pie',            desc:'Fisioterapia',      emoji:'🦶',    tipo:'cantidad', activo:true  },
-  { id:3, nombre:'Siesta',                    desc:'Descanso diurno',   emoji:'😴',    tipo:'cantidad', activo:true  },
-  { id:4, nombre:'Ejercicios Kinesiológicos', desc:'Kinesiología',      emoji:'🧑‍⚕️', tipo:'cantidad', activo:false },
-]
-
+// ── RUTINAS ───────────────────────────────────────────────
 let emmaRutinasFiltro = 'todas'
 let emmaRutinasEditandoId = null
 
@@ -454,37 +559,63 @@ function emmaRutinasGuardarNueva() {
   if (!nombre) return
   const tipoActivo = document.querySelector('#rutina-nueva-tipo .rutinas-tipo-opt.active .rutinas-tipo-lbl')
   const tipo = tipoActivo?.textContent.includes('Sí') ? 'binario' : 'cantidad'
-  const newId = Math.max(...emmaRutinasData.map(r => r.id)) + 1
-  emmaRutinasData.push({
-    id: newId,
-    nombre,
-    desc: document.getElementById('rutina-nueva-desc').value.trim(),
-    emoji: document.getElementById('rutina-nueva-emoji').value.trim() || '📋',
-    tipo,
-    activo: true,
+  fetch('/api/emma/rutinas', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      nombre,
+      descripcion: document.getElementById('rutina-nueva-desc').value.trim(),
+      emoji: document.getElementById('rutina-nueva-emoji').value.trim() || '📋',
+      tipo,
+      activo: true,
+    })
   })
-  emmaRutinasRender()
-  emmaRutinasCerrar('rutinas-modal-nueva')
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) { emmaCargarDatos(); emmaRutinasCerrar('rutinas-modal-nueva') }
+    else console.error('[Emma] Error guardando rutina:', data.error)
+  })
+  .catch(err => console.error('[Emma] fetch error:', err))
 }
 
 function emmaRutinasGuardarEdicion() {
   const r = emmaRutinasData.find(x => x.id === emmaRutinasEditandoId)
   if (!r) return
   const tipoActivo = document.querySelector('#rutina-editar-tipo .rutinas-tipo-opt.active .rutinas-tipo-lbl')
-  r.nombre = document.getElementById('rutina-editar-nombre').value.trim() || r.nombre
-  r.desc   = document.getElementById('rutina-editar-desc').value.trim()
-  r.emoji  = document.getElementById('rutina-editar-emoji').value.trim() || r.emoji
-  r.tipo   = tipoActivo?.textContent.includes('Sí') ? 'binario' : 'cantidad'
-  r.activo = document.getElementById('rutina-editar-switch').classList.contains('on')
-  emmaRutinasRender()
-  emmaRutinasCerrar('rutinas-modal-editar')
+  fetch('/api/emma/rutinas', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      rowIndex:    r._row,
+      nombre:      document.getElementById('rutina-editar-nombre').value.trim() || r.nombre,
+      descripcion: document.getElementById('rutina-editar-desc').value.trim(),
+      emoji:       document.getElementById('rutina-editar-emoji').value.trim() || r.emoji,
+      tipo:        tipoActivo?.textContent.includes('Sí') ? 'binario' : 'cantidad',
+      activo:      document.getElementById('rutina-editar-switch').classList.contains('on'),
+    })
+  })
+  .then(r2 => r2.json())
+  .then(data => {
+    if (data.ok) { emmaCargarDatos(); emmaRutinasCerrar('rutinas-modal-editar') }
+    else console.error('[Emma] Error editando rutina:', data.error)
+  })
+  .catch(err => console.error('[Emma] fetch error:', err))
 }
 
 function emmaRutinasEliminar() {
-  const idx = emmaRutinasData.findIndex(x => x.id === emmaRutinasEditandoId)
-  if (idx > -1) emmaRutinasData.splice(idx, 1)
-  emmaRutinasRender()
-  emmaRutinasCerrar('rutinas-modal-editar')
+  const r = emmaRutinasData.find(x => x.id === emmaRutinasEditandoId)
+  if (!r) return
+  fetch('/api/emma/rutinas', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rowIndex: r._row })
+  })
+  .then(r2 => r2.json())
+  .then(data => {
+    if (data.ok) { emmaCargarDatos(); emmaRutinasCerrar('rutinas-modal-editar') }
+    else console.error('[Emma] Error eliminando rutina:', data.error)
+  })
+  .catch(err => console.error('[Emma] fetch error:', err))
 }
 
 function emmaRutinasCerrar(id) { document.getElementById(id)?.classList.remove('open') }
@@ -501,26 +632,7 @@ window.emmaRutinasSelTipo = emmaRutinasSelTipo
 window.emmaRutinasCerrar = emmaRutinasCerrar
 window.emmaRutinasCerrarSiOverlay = emmaRutinasCerrarSiOverlay
 
-// ── PLANES MOCK ───────────────────────────────────────────
-const emmaPlanesData = [
-  {
-    id: 1, nombre: 'Plan Emma — 6 meses', activo: true,
-    items: [
-      { id:1, tipo:'comida', cat:'Leche',   emoji:'🍼', nombre:'Leche',            sub:'120 cc · cualquier tipo', hora:6,  min:0,  flexible:false },
-      { id:2, tipo:'comida', cat:'Leche',   emoji:'🍼', nombre:'Leche',            sub:'120 cc · cualquier tipo', hora:9,  min:30, flexible:false },
-      { id:3, tipo:'rutina', cat:'rutina',  emoji:'😴', nombre:'Siesta',           sub:'aprox. 1h 30min',         hora:9,  min:30, flexible:false },
-      { id:4, tipo:'comida', cat:'Sólidos', emoji:'🥕', nombre:'Sólidos — Almuerzo', sub:'Categoría Sólidos',     hora:12, min:30, flexible:false },
-      { id:5, tipo:'comida', cat:'Leche',   emoji:'🍼', nombre:'Leche',            sub:'120 cc · cualquier tipo', hora:15, min:30, flexible:false },
-      { id:6, tipo:'rutina', cat:'rutina',  emoji:'😴', nombre:'Siesta',           sub:'aprox. 1h 30min',         hora:15, min:30, flexible:false },
-      { id:7, tipo:'comida', cat:'Sólidos', emoji:'🍽️', nombre:'Sólidos — Cena',   sub:'Categoría Sólidos',      hora:18, min:0,  flexible:false },
-      { id:8, tipo:'comida', cat:'Leche',   emoji:'🍼', nombre:'Leche',            sub:'120 cc · cualquier tipo', hora:21, min:0,  flexible:false },
-      { id:9, tipo:'rutina', cat:'rutina',  emoji:'💊', nombre:'Vitaminas',        sub:'Rutina · Sí/No',          hora:0,  min:0,  flexible:true  },
-      { id:10,tipo:'rutina', cat:'rutina',  emoji:'🦶', nombre:'Ejercicios Pie',   sub:'Rutina · Cantidad',       hora:0,  min:0,  flexible:true  },
-    ]
-  },
-  { id: 2, nombre: 'Plan Emma — 4 meses', activo: false, items: [] },
-]
-
+// ── PLANES ────────────────────────────────────────────────
 let emmaPlanesEditandoPlanId = null
 let emmaPlanesEditandoItemId = null
 let emmaPlanesPickerH = { 'add-comida': 6, 'add-rutina': 6, 'edit-hora': 9 }
@@ -762,10 +874,17 @@ function emmaPlaneAbrirNuevo() {
 function emmaPlaneGuardarNuevo() {
   const nombre = document.getElementById('planes-nuevo-nombre').value.trim()
   if (!nombre) return
-  const newId = Math.max(...emmaPlanesData.map(p => p.id)) + 1
-  emmaPlanesData.push({ id: newId, nombre, activo: false, items: [] })
-  emmaPlanesCerrar('planes-modal-nuevo')
-  emmaPlanesRenderLista()
+  fetch('/api/emma/planes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nombre })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) { emmaCargarDatos(); emmaPlanesCerrar('planes-modal-nuevo') }
+    else console.error('[Emma] Error guardando plan:', data.error)
+  })
+  .catch(err => console.error('[Emma] fetch error:', err))
 }
 
 function emmaPlaneAbrirEditarNombre() {
@@ -780,14 +899,29 @@ function emmaPlaneAbrirEditarNombre() {
 function emmaPlaneGuardarEdicionNombre() {
   const plan = emmaPlanesData.find(p => p.id === emmaPlanesEditandoPlanId)
   if (!plan) return
-  const nombre = document.getElementById('planes-editar-nombre-input').value.trim()
-  if (nombre) plan.nombre = nombre
+  const nombre   = document.getElementById('planes-editar-nombre-input').value.trim() || plan.nombre
   const esActivo = document.getElementById('planes-activo-switch').classList.contains('on')
-  if (esActivo) emmaPlanesData.forEach(p => p.activo = p.id === emmaPlanesEditandoPlanId)
-  else plan.activo = false
-  document.getElementById('planes-detail-title').textContent = plan.nombre
-  document.getElementById('planes-detail-badge').textContent = plan.activo ? '● PLAN ACTIVO' : '○ PLAN INACTIVO'
-  emmaPlanesCerrar('planes-modal-editar-nombre')
+
+  const doUpdate = () => fetch('/api/emma/planes', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rowIndex: plan._row, nombre, activo: esActivo })
+  })
+  const doActivar = () => fetch('/api/emma/planes', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ activar: true, planId: emmaPlanesEditandoPlanId })
+  })
+
+  const chain = esActivo ? doActivar().then(doUpdate) : doUpdate()
+  chain
+    .then(() => emmaCargarDatos())
+    .then(() => {
+      document.getElementById('planes-detail-title').textContent = nombre
+      document.getElementById('planes-detail-badge').textContent = esActivo ? '● PLAN ACTIVO' : '○ PLAN INACTIVO'
+      emmaPlanesCerrar('planes-modal-editar-nombre')
+    })
+    .catch(err => console.error('[Emma] fetch error:', err))
 }
 
 function emmaPlaneAbrirAddComida() {
@@ -815,23 +949,43 @@ function emmaPlaneAbrirAddRutina() {
 function emmaPlaneGuardarComida() {
   const plan = emmaPlanesData.find(p => p.id === emmaPlanesEditandoPlanId)
   if (!plan) return
-  const catEl = document.querySelector('#planes-add-comida-cat .planes-seg-opt.active')
-  const unidadEl = document.querySelector('#planes-add-comida-unidad .planes-seg-opt.active')
+  const catEl    = document.querySelector('#planes-add-comida-cat .planes-seg-opt.active')
   const etiqueta = document.getElementById('planes-add-comida-etiqueta').value.trim()
-  const cantidad = document.getElementById('planes-add-comida-cantidad').value
-  const cat = catEl ? catEl.textContent.replace(/^[^\s]+\s/,'') : 'Leche'
-  const emoji = cat === 'Leche' ? '🍼' : cat === 'Sólidos' ? '🥕' : '🍌'
-  const nombre = etiqueta ? cat + ' — ' + etiqueta : cat
-  const sub = cantidad ? cantidad + ' ' + (unidadEl?.textContent || 'cc') + ' · cualquier tipo' : 'Categoría ' + cat
-  const newId = Math.max(0, ...plan.items.map(i => i.id)) + 1
-  plan.items.push({
-    id: newId, tipo: 'comida', cat, emoji, nombre, sub,
-    hora: emmaPlanesPickerH['add-comida'],
-    min: emmaPlanesPickerM['add-comida'],
-    flexible: false
+  const cat      = catEl ? catEl.textContent.replace(/^[^\s]+\s/,'').trim() : 'Leche'
+  const emoji    = cat === 'Leche' ? '🍼' : cat === 'Sólidos' ? '🥕' : '🍌'
+  const nombre   = etiqueta ? cat + ' — ' + etiqueta : cat
+  const comida   = emmaComidasData.find(c => c.categoria === cat && c.nombre === nombre)
+  const referenciaId = comida?.id || 0
+  const itemsEnHora  = plan.items.filter(i =>
+    !i.flexible && i.hora === emmaPlanesPickerH['add-comida'] && i.min === emmaPlanesPickerM['add-comida']
+  )
+  fetch('/api/emma/planes-items', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      planId: emmaPlanesEditandoPlanId,
+      tipo: 'comida',
+      referenciaId,
+      nombre,
+      emoji,
+      categoria: cat,
+      etiqueta,
+      hora: emmaPlanesPickerH['add-comida'],
+      min:  emmaPlanesPickerM['add-comida'],
+      flexible: false,
+      orden: itemsEnHora.length + 1,
+    })
   })
-  emmaPlanesCerrar('planes-modal-add-comida')
-  emmaPlanesRenderDetalle()
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      emmaCargarDatos().then(() => emmaPlanesRenderDetalle())
+      emmaPlanesCerrar('planes-modal-add-comida')
+    } else {
+      console.error('[Emma] Error guardando comida en plan:', data.error)
+    }
+  })
+  .catch(err => console.error('[Emma] fetch error:', err))
 }
 
 function emmaPlaneGuardarRutina() {
@@ -839,20 +993,42 @@ function emmaPlaneGuardarRutina() {
   if (!plan) return
   const rutinaEl = document.querySelector('#planes-add-rutina-sel .planes-seg-opt.active')
   if (!rutinaEl) return
-  const texto = rutinaEl.textContent
-  const emoji = texto.match(/\p{Emoji}/u)?.[0] || '📋'
-  const nombre = texto.replace(/^\S+\s/,'')
+  const texto      = rutinaEl.textContent
+  const emoji      = texto.match(/\p{Emoji}/u)?.[0] || '📋'
+  const nombre     = texto.replace(/^\S+\s/,'').trim()
   const esFlexible = document.getElementById('planes-opt-flexible').classList.contains('active')
-  const newId = Math.max(0, ...plan.items.map(i => i.id)) + 1
-  plan.items.push({
-    id: newId, tipo: 'rutina', cat: 'rutina', emoji, nombre,
-    sub: 'Rutina',
-    hora: esFlexible ? 0 : emmaPlanesPickerH['add-rutina'],
-    min: esFlexible ? 0 : emmaPlanesPickerM['add-rutina'],
-    flexible: esFlexible
+  const rutina     = emmaRutinasData.find(r => r.nombre === nombre)
+  const referenciaId = rutina?.id || 0
+  const hora = esFlexible ? 0 : emmaPlanesPickerH['add-rutina']
+  const min  = esFlexible ? 0 : emmaPlanesPickerM['add-rutina']
+  const itemsEnHora = esFlexible ? [] : plan.items.filter(i => !i.flexible && i.hora === hora && i.min === min)
+  fetch('/api/emma/planes-items', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      planId: emmaPlanesEditandoPlanId,
+      tipo: 'rutina',
+      referenciaId,
+      nombre,
+      emoji,
+      categoria: 'rutina',
+      etiqueta: '',
+      hora,
+      min,
+      flexible: esFlexible,
+      orden: itemsEnHora.length + 1,
+    })
   })
-  emmaPlanesCerrar('planes-modal-add-rutina')
-  emmaPlanesRenderDetalle()
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      emmaCargarDatos().then(() => emmaPlanesRenderDetalle())
+      emmaPlanesCerrar('planes-modal-add-rutina')
+    } else {
+      console.error('[Emma] Error guardando rutina en plan:', data.error)
+    }
+  })
+  .catch(err => console.error('[Emma] fetch error:', err))
 }
 
 function emmaPlaneAbrirCambiarHora(itemId) {
@@ -873,22 +1049,53 @@ function emmaPlaneGuardarHora() {
   const plan = emmaPlanesData.find(p => p.id === emmaPlanesEditandoPlanId)
   const item = plan?.items.find(i => i.id === emmaPlanesEditandoItemId)
   if (!item) return
-  if (emmaPlanesModoCambioHora === 'flexible') {
-    item.flexible = true; item.hora = 0; item.min = 0
-  } else {
-    item.flexible = false
-    item.hora = emmaPlanesPickerH['edit-hora']
-    item.min = emmaPlanesPickerM['edit-hora']
-  }
-  emmaPlanesCerrar('planes-modal-cambiar-hora')
-  emmaPlanesRenderDetalle()
+  const esFlexible = emmaPlanesModoCambioHora === 'flexible'
+  fetch('/api/emma/planes-items', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      rowIndex:     item._row,
+      planId:       item.planId,
+      tipo:         item.tipo,
+      referenciaId: item.referenciaId,
+      nombre:       item.nombre,
+      emoji:        item.emoji,
+      categoria:    item.cat,
+      etiqueta:     item.etiqueta || '',
+      hora:         esFlexible ? 0 : emmaPlanesPickerH['edit-hora'],
+      min:          esFlexible ? 0 : emmaPlanesPickerM['edit-hora'],
+      flexible:     esFlexible,
+      orden:        item.orden,
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      emmaPlanesCerrar('planes-modal-cambiar-hora')
+      emmaCargarDatos().then(() => emmaPlanesRenderDetalle())
+    } else {
+      console.error('[Emma] Error actualizando hora:', data.error)
+    }
+  })
+  .catch(err => console.error('[Emma] fetch error:', err))
 }
 
 function emmaPlaneEliminarItem(itemId) {
   const plan = emmaPlanesData.find(p => p.id === emmaPlanesEditandoPlanId)
   if (!plan) return
-  plan.items = plan.items.filter(i => i.id !== itemId)
-  emmaPlanesRenderDetalle()
+  const item = plan.items.find(i => i.id === itemId)
+  if (!item) return
+  fetch('/api/emma/planes-items', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rowIndex: item._row })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) emmaCargarDatos().then(() => emmaPlanesRenderDetalle())
+    else console.error('[Emma] Error eliminando item:', data.error)
+  })
+  .catch(err => console.error('[Emma] fetch error:', err))
 }
 
 function emmaPlanesSelMover(modo) {
@@ -966,7 +1173,42 @@ function emmaCalFechaKey(offset) {
   return d.toISOString().slice(0, 10)
 }
 
-function emmaCalCambiarDia(delta) {
+async function emmaCalCargarFecha(fecha) {
+  try {
+    const [regRes, panRes] = await Promise.all([
+      fetch('/api/emma/registro?fecha=' + fecha),
+      fetch('/api/emma/panales?fecha='  + fecha),
+    ])
+    const regData = await regRes.json()
+    const panData = await panRes.json()
+
+    if (!emmaCalRegistros[fecha]) emmaCalRegistros[fecha] = {}
+
+    if (regData.ok) {
+      regData.rows.forEach(row => {
+        // row: ID|Fecha|TipoRegistro|Hora|Cantidad|Unidad|Estado|SolidoNombre|Nota|FechaHoraRegistro|PlanItemID
+        const planItemId = row[10] ? parseInt(row[10]) : null
+        const key = planItemId ?? (row[2] + '_' + row[3])
+        emmaCalRegistros[fecha][key] = {
+          cantidad:     parseFloat(row[4]) || 0,
+          unidad:       row[5] || '',
+          estado:       row[6] || 'pendiente',
+          solidoNombre: row[7] || '',
+          nota:         row[8] || '',
+          planItemId,
+        }
+      })
+    }
+
+    if (panData.pipi !== undefined) {
+      emmaCalRegistros[fecha]['_panales'] = { pipi: panData.pipi, popo: panData.popo }
+    }
+  } catch (err) {
+    console.error('[Emma] emmaCalCargarFecha error:', err)
+  }
+}
+
+async function emmaCalCambiarDia(delta) {
   emmaCalDiaOffset += delta
   const d = new Date(); d.setDate(d.getDate() + emmaCalDiaOffset)
   const lbl = emmaCalDiaOffset === 0 ? 'Hoy'
@@ -974,6 +1216,10 @@ function emmaCalCambiarDia(delta) {
     : emmaCalDow[d.getDay()]
   const el = document.getElementById('cal-fecha-display')
   if (el) el.textContent = lbl + ' · ' + d.getDate() + ' ' + emmaCalMeses[d.getMonth()]
+  const fecha = emmaCalFechaKey(emmaCalDiaOffset)
+  if (!emmaCalRegistros[fecha]) await emmaCalCargarFecha(fecha)
+  const fechaAyer = emmaCalFechaKey(emmaCalDiaOffset - 1)
+  if (!emmaCalRegistros[fechaAyer]) await emmaCalCargarFecha(fechaAyer)
   emmaCalRender()
 }
 
@@ -1321,33 +1567,111 @@ function emmaCalActualizarCompareModal(item) {
 
 function emmaCalGuardarRegistro() {
   if (!emmaCalItemActual) return
-  const val = parseInt(document.getElementById('cal-qty-input').value) || 0
-  const nota = document.getElementById('cal-nota-input').value.trim()
+  const val          = parseInt(document.getElementById('cal-qty-input')?.value) || 0
+  const nota         = document.getElementById('cal-nota-input')?.value.trim() || ''
   const solidoActivo = document.querySelector('.cal-solido-chip.active')
-  emmaCalSetRegistro(emmaCalItemActual.id, {
-    cantidad: val,
-    nota,
-    solidoId: solidoActivo ? parseInt(solidoActivo.dataset.id) : null,
-    solidoNombre: solidoActivo ? solidoActivo.textContent.trim().split(' · ')[0] : null,
-    estado: emmaCalEstado(val, emmaCalQtyMax),
+  const solidoNombre = solidoActivo ? solidoActivo.textContent.trim().split(' · ')[0] : ''
+  const estado       = emmaCalEstado(val, emmaCalQtyMax)
+  const fecha        = emmaCalFechaKey(emmaCalDiaOffset)
+  const item         = emmaCalItemActual
+  const horaStr      = item.flexible ? '' : item.hora + ':' + String(item.min).padStart(2, '0')
+
+  fetch('/api/emma/registro', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fecha,
+      tipoRegistro: item.tipo === 'rutina' ? 'rutina'
+                  : item.cat  === 'Leche'  ? 'leche'
+                  : item.cat  === 'Sólidos'? 'sólido'
+                  : item.cat  === 'Postre' ? 'postre'
+                  : 'comida',
+      hora:        horaStr,
+      cantidad:    val,
+      unidad:      item.unidad || '',
+      estado,
+      solidoNombre,
+      nota,
+      planItemId:  item.id,
+    })
   })
-  emmaCalCerrar('cal-modal-registro')
-  emmaCalRender()
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      if (!emmaCalRegistros[fecha]) emmaCalRegistros[fecha] = {}
+      emmaCalRegistros[fecha][item.id] = { cantidad: val, nota, solidoNombre, estado }
+      emmaCalCerrar('cal-modal-registro')
+      emmaCalRender()
+    } else {
+      console.error('[Emma] Error guardando registro:', data.error)
+    }
+  })
+  .catch(err => console.error('[Emma] fetch error:', err))
 }
 
 function emmaCalToggleBinario(itemId, btn) {
-  const reg = emmaCalGetRegistro(itemId)
-  const hecho = reg?.cantidad === 1
-  emmaCalSetRegistro(itemId, { cantidad: hecho ? 0 : 1, estado: hecho ? 'pendiente' : 'completo' })
-  emmaCalRender()
+  const plan  = emmaPlanesData?.find(p => p.activo)
+  const item  = plan?.items.find(i => i.id === itemId)
+  if (!item) return
+  const fecha = emmaCalFechaKey(emmaCalDiaOffset)
+  const reg   = emmaCalGetRegistro(itemId)
+  const nuevo = reg?.cantidad === 1 ? 0 : 1
+  fetch('/api/emma/registro', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fecha,
+      tipoRegistro: 'rutina',
+      hora: '',
+      cantidad: nuevo,
+      unidad: '',
+      estado: nuevo === 1 ? 'completo' : 'pendiente',
+      solidoNombre: '',
+      nota: '',
+      planItemId: itemId,
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      if (!emmaCalRegistros[fecha]) emmaCalRegistros[fecha] = {}
+      emmaCalRegistros[fecha][itemId] = { cantidad: nuevo, estado: nuevo === 1 ? 'completo' : 'pendiente' }
+      emmaCalRender()
+    }
+  })
+  .catch(err => console.error('[Emma] fetch error:', err))
 }
 
 function emmaCalCnt(itemId, delta) {
-  const reg = emmaCalGetRegistro(itemId) || { cantidad: 0 }
+  const plan  = emmaPlanesData?.find(p => p.activo)
+  const item  = plan?.items.find(i => i.id === itemId)
+  if (!item) return
+  const fecha = emmaCalFechaKey(emmaCalDiaOffset)
+  const reg   = emmaCalGetRegistro(itemId) || { cantidad: 0 }
   const nuevo = Math.max(0, (reg.cantidad || 0) + delta)
-  emmaCalSetRegistro(itemId, { ...reg, cantidad: nuevo, estado: nuevo > 0 ? 'completo' : 'pendiente' })
+
   const el = document.getElementById('cal-cnt-' + itemId)
   if (el) el.textContent = nuevo
+
+  if (!emmaCalRegistros[fecha]) emmaCalRegistros[fecha] = {}
+  emmaCalRegistros[fecha][itemId] = { ...reg, cantidad: nuevo, estado: nuevo > 0 ? 'completo' : 'pendiente' }
+
+  fetch('/api/emma/registro', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fecha,
+      tipoRegistro: 'rutina',
+      hora: '',
+      cantidad: nuevo,
+      unidad: '',
+      estado: nuevo > 0 ? 'completo' : 'pendiente',
+      solidoNombre: '',
+      nota: '',
+      planItemId: itemId,
+    })
+  })
+  .catch(err => console.error('[Emma] fetch error:', err))
 }
 
 function emmaCalActualizarKPIs(plan) {
