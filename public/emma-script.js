@@ -25,11 +25,20 @@ function emmaSwitchScreen(screen, pushHistory = true) {
     l.classList.toggle('active', l.dataset.screen === screen)
   })
 
-  if (screen === 'comidas' && typeof emmaComidasRender === 'function') emmaComidasRender()
-  if (screen === 'rutinas' && typeof emmaRutinasRender === 'function') emmaRutinasRender()
-  if (screen === 'planes' && typeof emmaPlanesRenderLista === 'function') emmaPlanesRenderLista()
-  if (screen === 'calendario' && typeof emmaCalRender === 'function') {
-    emmaCalCambiarDia(0)
+  if (screen === 'home'      && typeof emmaHomeRender       === 'function') emmaHomeRender()
+  if (screen === 'comidas'   && typeof emmaComidasRender    === 'function') emmaComidasRender()
+  if (screen === 'rutinas'   && typeof emmaRutinasRender    === 'function') emmaRutinasRender()
+  if (screen === 'planes'    && typeof emmaPlanesRenderLista === 'function') emmaPlanesRenderLista()
+  if (screen === 'calendario' && typeof emmaCalCambiarDia   === 'function') {
+    emmaCalRender()
+    const _d = new Date(); _d.setDate(_d.getDate() + emmaCalDiaOffset)
+    const _lbl = emmaCalDiaOffset === 0 ? 'Hoy'
+      : emmaCalDiaOffset === -1 ? 'Ayer'
+      : emmaCalDow[_d.getDay()]
+    const _el = document.getElementById('cal-fecha-display')
+    if (_el) _el.textContent = _lbl + ' · ' + _d.getDate() + ' ' + emmaCalMeses[_d.getMonth()]
+    const _fecha = emmaCalFechaKey(emmaCalDiaOffset)
+    if (!emmaCalRegistros[_fecha]) emmaCalCargarFecha(_fecha).then(() => emmaCalRender())
   }
 
   window.scrollTo(0, 0)
@@ -192,6 +201,7 @@ async function emmaCargarDatos() {
     emmaDataCargada = true
 
     const screenActiva = document.querySelector('.screen.active')?.id
+    if (screenActiva === 'screen-home')       emmaHomeRender()
     if (screenActiva === 'screen-comidas')    emmaComidasRender()
     if (screenActiva === 'screen-rutinas')    emmaRutinasRender()
     if (screenActiva === 'screen-planes')     emmaPlanesRenderLista()
@@ -255,6 +265,58 @@ window.emmaAbrirNuevaComida = emmaAbrirNuevaComida
 window.emmaCargarDatos = emmaCargarDatos
 
 emmaCargarDatos()
+
+async function emmaHomeRender() {
+  const fechaHoy = emmaCalFechaKey(0)
+  if (!emmaCalRegistros[fechaHoy]) await emmaCalCargarFecha(fechaHoy)
+
+  const plan = emmaPlanesData.find(p => p.activo)
+  const regs = emmaCalRegistros[fechaHoy] || {}
+
+  const lecheItems  = plan ? plan.items.filter(i => i.cat === 'Leche')   : []
+  const lecheTotal  = lecheItems.reduce((s, i) => s + (regs[i.id]?.cantidad || 0), 0)
+  const lechePlan   = lecheItems.reduce((s, i) => s + (i.tamano || 0), 0)
+
+  const solidoItems = plan ? plan.items.filter(i => i.cat === 'Sólidos') : []
+  const solidoTotal = solidoItems.reduce((s, i) => s + (regs[i.id]?.cantidad || 0), 0)
+
+  const ahora       = new Date()
+  const minActual   = ahora.getHours() * 60 + ahora.getMinutes()
+  const proximaToma = plan
+    ? plan.items
+        .filter(i => !i.flexible && i.cat === 'Leche' && !regs[i.id])
+        .sort((a, b) => (a.hora * 60 + a.min) - (b.hora * 60 + b.min))
+        .find(i => i.hora * 60 + i.min >= minActual)
+    : null
+  const proximaHora = proximaToma
+    ? proximaToma.hora + ':' + String(proximaToma.min).padStart(2, '0')
+    : '—'
+
+  const totalItems  = plan ? plan.items.length : 0
+  const completados = plan
+    ? plan.items.filter(i => regs[i.id]?.estado === 'completo' || regs[i.id]?.cantidad > 0).length
+    : 0
+
+  const panales      = regs['_panales'] || { pipi: 0, popo: 0 }
+  const rutinasItems = plan ? plan.items.filter(i => i.tipo === 'rutina') : []
+  const rutinasHechas = rutinasItems.filter(i => regs[i.id]?.cantidad > 0).length
+
+  const set = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val }
+
+  set('home-leche-val',   lecheTotal + ' cc')
+  set('home-leche-sub',   'de ' + lechePlan + ' cc objetivo')
+  set('home-solidos-val', solidoTotal + ' gr')
+  set('home-proxima-val', proximaHora)
+  set('home-comidas-val', completados + ' / ' + totalItems)
+  set('home-panales-val', panales.pipi + panales.popo)
+  set('home-panales-sub', 'Pipí: ' + panales.pipi + ' · Popó: ' + panales.popo)
+  set('home-rutinas-val', rutinasHechas + '/' + rutinasItems.length)
+
+  const pct   = lechePlan > 0 ? Math.min(100, Math.round(lecheTotal / lechePlan * 100)) : 0
+  const barEl = document.getElementById('home-leche-bar')
+  if (barEl) barEl.style.width = pct + '%'
+}
+window.emmaHomeRender = emmaHomeRender
 
 // ── COMIDAS ───────────────────────────────────────────────
 let emmaComidasFiltro = 'todas'
@@ -1303,6 +1365,34 @@ function emmaCalRender() {
     html += '</div>'
   }
 
+  const regs    = emmaCalRegistros[emmaCalFechaKey(emmaCalDiaOffset)] || {}
+  const panales = regs['_panales'] || { pipi: 0, popo: 0 }
+  html += `
+  <div class="cal-section-hdr" style="margin-top:16px;">PAÑALES</div>
+  <div style="background:#fff;border:0.5px solid rgba(127,119,221,0.18);
+              border-radius:14px;padding:12px 14px;
+              display:flex;align-items:center;gap:16px;">
+    <div style="flex:1;text-align:center;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;
+                  color:#AFA9EC;margin-bottom:6px;">PIPÍ</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:0;">
+        <div class="cal-cnt-btn" onclick="emmaCalPanalesCnt('pipi',-1)">−</div>
+        <div class="cal-cnt-val" id="cal-panales-pipi">${panales.pipi}</div>
+        <div class="cal-cnt-btn" onclick="emmaCalPanalesCnt('pipi',1)">+</div>
+      </div>
+    </div>
+    <div style="width:1px;height:40px;background:rgba(127,119,221,0.15);"></div>
+    <div style="flex:1;text-align:center;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;
+                  color:#AFA9EC;margin-bottom:6px;">POPÓ</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:0;">
+        <div class="cal-cnt-btn" onclick="emmaCalPanalesCnt('popo',-1)">−</div>
+        <div class="cal-cnt-val" id="cal-panales-popo">${panales.popo}</div>
+        <div class="cal-cnt-btn" onclick="emmaCalPanalesCnt('popo',1)">+</div>
+      </div>
+    </div>
+  </div>`
+
   lista.innerHTML = html
   emmaCalActualizarKPIs(plan)
 }
@@ -1673,6 +1763,25 @@ function emmaCalCnt(itemId, delta) {
   })
   .catch(err => console.error('[Emma] fetch error:', err))
 }
+
+function emmaCalPanalesCnt(tipo, delta) {
+  const fecha = emmaCalFechaKey(emmaCalDiaOffset)
+  if (!emmaCalRegistros[fecha]) emmaCalRegistros[fecha] = {}
+  const actual = emmaCalRegistros[fecha]['_panales'] || { pipi: 0, popo: 0 }
+  actual[tipo] = Math.max(0, (actual[tipo] || 0) + delta)
+  emmaCalRegistros[fecha]['_panales'] = actual
+
+  const el = document.getElementById('cal-panales-' + tipo)
+  if (el) el.textContent = actual[tipo]
+
+  fetch('/api/emma/panales', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fecha, pipi: actual.pipi, popo: actual.popo })
+  })
+  .catch(err => console.error('[Emma] fetch panales error:', err))
+}
+window.emmaCalPanalesCnt = emmaCalPanalesCnt
 
 function emmaCalActualizarKPIs(plan) {
   const todos = plan.items

@@ -786,8 +786,8 @@ body { font-family: 'Geist', -apple-system, sans-serif; background: var(--emma-b
                   </div>
                   <div><div class="acc-name">Leche</div><div class="acc-type">Tomas del día</div></div>
                 </div>
-                <div class="acc-value" style="color:var(--emma-accent);">480 cc</div>
-                <div class="acc-sub">de 600 cc objetivo</div>
+                <div class="acc-value" id="home-leche-val" style="color:var(--emma-accent);">480 cc</div>
+                <div class="acc-sub" id="home-leche-sub">de 600 cc objetivo</div>
               </div>
 
               <div class="acc-card">
@@ -797,7 +797,7 @@ body { font-family: 'Geist', -apple-system, sans-serif; background: var(--emma-b
                   </div>
                   <div><div class="acc-name">Sólidos</div><div class="acc-type">Colados del día</div></div>
                 </div>
-                <div class="acc-value" style="color:var(--emma-green);">215 gr</div>
+                <div class="acc-value" id="home-solidos-val" style="color:var(--emma-green);">215 gr</div>
                 <div class="acc-sub">Almuerzo completado</div>
               </div>
 
@@ -808,7 +808,7 @@ body { font-family: 'Geist', -apple-system, sans-serif; background: var(--emma-b
                   </div>
                   <div><div class="acc-name">Próxima toma</div><div class="acc-type">Postre fruta</div></div>
                 </div>
-                <div class="acc-value" style="font-size:22px;color:var(--emma-accent);">15:30</div>
+                <div class="acc-value" id="home-proxima-val" style="font-size:22px;color:var(--emma-accent);">15:30</div>
                 <div class="acc-sub">En 1h 15min</div>
               </div>
 
@@ -819,7 +819,7 @@ body { font-family: 'Geist', -apple-system, sans-serif; background: var(--emma-b
                   </div>
                   <div><div class="info-name">Comidas completadas</div><div class="info-type">14 mayo 2025</div></div>
                 </div>
-                <div class="info-monto" style="font-size:28px;font-weight:700;">3 / 6</div>
+                <div class="info-monto" id="home-comidas-val" style="font-size:28px;font-weight:700;">3 / 6</div>
                 <div class="info-sub">del día completadas</div>
               </div>
 
@@ -830,8 +830,8 @@ body { font-family: 'Geist', -apple-system, sans-serif; background: var(--emma-b
                   </div>
                   <div><div class="acc-name">Pañales hoy</div><div class="acc-type">Registro diario</div></div>
                 </div>
-                <div class="acc-value" style="color:var(--emma-accent);">5</div>
-                <div class="acc-sub">Pipí: 4 · Popó: 1</div>
+                <div class="acc-value" id="home-panales-val" style="color:var(--emma-accent);">5</div>
+                <div class="acc-sub" id="home-panales-sub">Pipí: 4 · Popó: 1</div>
               </div>
 
               <div class="info-card">
@@ -841,7 +841,7 @@ body { font-family: 'Geist', -apple-system, sans-serif; background: var(--emma-b
                   </div>
                   <div><div class="info-name">Rutinas extras</div><div class="info-type">Hoy</div></div>
                 </div>
-                <div class="info-monto">2 / 4</div>
+                <div class="info-monto" id="home-rutinas-val">2 / 4</div>
                 <div class="info-sub">Vitaminas, ejercicio, ducha</div>
               </div>
             </div>
@@ -853,7 +853,7 @@ body { font-family: 'Geist', -apple-system, sans-serif; background: var(--emma-b
                   <div><div style="font-size:12px;color:var(--emma-sub);margin-bottom:4px;">Tomado</div><div style="font-size:26px;font-weight:600;letter-spacing:-.02em;">480 cc</div></div>
                   <div style="text-align:right;"><div style="font-size:12px;color:var(--emma-sub);margin-bottom:4px;">Objetivo</div><div style="font-size:26px;font-weight:600;letter-spacing:-.02em;">600 cc</div></div>
                 </div>
-                <div class="ppto-bar"><div class="ppto-fill" style="width:80%"></div></div>
+                <div class="ppto-bar"><div class="ppto-fill" id="home-leche-bar" style="width:80%"></div></div>
                 <div class="ppto-pct">
                   <span class="ppto-pct-label">del objetivo · 14 mayo</span>
                   <span class="ppto-pct-num">80%</span>
